@@ -1,0 +1,305 @@
+// ============================================================================
+// PayrollHub — Shared Type Definitions
+// All entities, enums, and DTOs used across frontend and backend
+// ============================================================================
+
+// --- Enums ---
+
+export enum UserRole {
+  SUPER_ADMIN = "super_admin",
+  ADMIN_RH = "admin_rh",
+  ADMIN_PAIE = "admin_paie",
+  COMPTABLE = "comptable",
+  MANAGER = "manager",
+  EMPLOYE = "employe",
+}
+
+export enum ContractType {
+  CDI = "CDI",
+  CDD = "CDD",
+  SIVP = "SIVP",
+  KARAMA = "Karama",
+}
+
+export enum LeaveType {
+  CONGE_PAYE = "conge_paye",
+  MALADIE = "maladie",
+  MATERNITE = "maternite",
+  PATERNITE = "paternite",
+  SANS_SOLDE = "sans_solde",
+  EXCEPTIONNEL = "exceptionnel",
+}
+
+export enum LeaveStatus {
+  EN_ATTENTE = "en_attente",
+  APPROUVE = "approuve",
+  REJETE = "rejete",
+  ANNULE = "annule",
+}
+
+export enum PayElementType {
+  SALAIRE_BASE = "salaire_base",
+  PRIME_ANCIENNETE = "prime_anciennete",
+  PRIME_RENDEMENT = "prime_rendement",
+  PRIME_TRANSPORT = "prime_transport",
+  PRIME_PANIER = "prime_panier",
+  PRIME_REPRESENTATION = "prime_representation",
+  PRIME_BILAN = "prime_bilan",
+  INDEMNITE_DEPLACEMENT = "indemnite_deplacement",
+  INDEMNITE_NUIT = "indemnite_nuit",
+  HEURES_SUP = "heures_sup",
+  AVANTAGE_NATURE = "avantage_nature",
+  ACOMPTE = "acompte",
+  SAISIE_SALAIRE = "saisie_salaire",
+  REMBOURSEMENT = "remboursement",
+  CNSS_SALARIAL = "cnss_salarial",
+  CNSS_PATRONAL = "cnss_patronal",
+  IRPP = "irpp",
+  FOPROLOS = "foprolos",
+  TFP = "tfp",
+}
+
+export enum PayPeriodStatus {
+  EN_COURS = "en_cours",
+  CALCULEE = "calculee",
+  VALIDEE = "validee",
+  FINALISEE = "finalisee",
+}
+
+export enum MaritalStatus {
+  CELIBATAIRE = "celibataire",
+  MARIE = "marie",
+  DIVORCE = "divorce",
+  VEUF = "veuf",
+}
+
+export enum SectorType {
+  INDUSTRIE = "industrie",
+  SERVICES = "services",
+}
+
+export enum WorkRegime {
+  REGIME_48H = "48h",
+  REGIME_40H = "40h",
+}
+
+// --- Entity Interfaces ---
+
+export interface Entreprise {
+  id: string;
+  nom: string;
+  adresse: string;
+  matriculeFiscal: string;
+  codeCnss: string;
+  secteurActivite: SectorType;
+  telephone?: string;
+  email?: string;
+  regimeTravail: WorkRegime;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Utilisateur {
+  id: string;
+  email: string;
+  nom: string;
+  prenom: string;
+  role: UserRole;
+  entrepriseId: string;
+  employeId?: string;
+  actif: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Employe {
+  id: string;
+  entrepriseId: string;
+  // Personal info
+  nom: string;
+  prenom: string;
+  cin: string;
+  dateNaissance: string;
+  adresse: string;
+  telephone?: string;
+  email?: string;
+  situationFamiliale: MaritalStatus;
+  nbEnfants: number;
+  residenceFiscale: string;
+  // Employment info
+  matriculeCnss: string;
+  dateEmbauche: string;
+  dateFin?: string;
+  typeContrat: ContractType;
+  categoriePro: string;
+  poste: string;
+  departement: string;
+  etablissement?: string;
+  // Financial info
+  salaireBase: number;
+  iban: string;
+  banque?: string;
+  // Status
+  actif: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PeriodePaie {
+  id: string;
+  entrepriseId: string;
+  mois: number;
+  annee: number;
+  dateDebut: string;
+  dateFin: string;
+  statut: PayPeriodStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ElementPaie {
+  id: string;
+  periodePaieId: string;
+  employeId: string;
+  type: PayElementType;
+  libelle: string;
+  montant: number;
+  estVariable: boolean;
+  heures?: number;
+  taux?: number;
+}
+
+export interface Conge {
+  id: string;
+  employeId: string;
+  typeConge: LeaveType;
+  dateDebut: string;
+  dateFin: string;
+  nbJours: number;
+  statut: LeaveStatus;
+  motif?: string;
+  documentUrl?: string;
+  approuvePar?: string;
+  dateApprobation?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentRH {
+  id: string;
+  employeId: string;
+  typeDocument: string;
+  nomFichier: string;
+  urlStockage: string;
+  dateCreation: string;
+}
+
+export interface ParametreReglementaire {
+  id: string;
+  nom: string;
+  description: string;
+  valeur: string;
+  categorie: string;
+  dateDebutValidite: string;
+  dateFinValidite?: string;
+}
+
+export interface BulletinPaie {
+  id: string;
+  periodePaieId: string;
+  employeId: string;
+  employe: Employe;
+  elements: ElementPaie[];
+  salaireBrut: number;
+  cnssSalarial: number;
+  cnssPatronal: number;
+  salaireNetImposable: number;
+  irpp: number;
+  netAPayer: number;
+  foprolos: number;
+  tfp: number;
+  coutTotalEmployeur: number;
+  dateGeneration: string;
+}
+
+// --- DTOs ---
+
+export interface LoginRequest {
+  email: string;
+  motDePasse: string;
+}
+
+export interface LoginResponse {
+  user: Omit<Utilisateur, "motDePasseHash">;
+  token: string;
+}
+
+export interface CreateEmployeRequest {
+  nom: string;
+  prenom: string;
+  cin: string;
+  dateNaissance: string;
+  adresse: string;
+  telephone?: string;
+  email?: string;
+  situationFamiliale: MaritalStatus;
+  nbEnfants: number;
+  residenceFiscale: string;
+  matriculeCnss: string;
+  dateEmbauche: string;
+  typeContrat: ContractType;
+  categoriePro: string;
+  poste: string;
+  departement: string;
+  etablissement?: string;
+  salaireBase: number;
+  iban: string;
+  banque?: string;
+}
+
+export interface UpdateEmployeRequest extends Partial<CreateEmployeRequest> {}
+
+export interface CreateUtilisateurRequest {
+  email: string;
+  motDePasse: string;
+  nom: string;
+  prenom: string;
+  role: UserRole;
+  employeId?: string;
+}
+
+export interface CreateEntrepriseRequest {
+  nom: string;
+  adresse: string;
+  matriculeFiscal: string;
+  codeCnss: string;
+  secteurActivite: SectorType;
+  telephone?: string;
+  email?: string;
+  regimeTravail: WorkRegime;
+}
+
+export interface DashboardStats {
+  totalEmployes: number;
+  contratsActifs: number;
+  congesEnAttente: number;
+  masseSalariale: number;
+  employesParDepartement: { departement: string; count: number }[];
+  employesParContrat: { type: ContractType; count: number }[];
+  evolutionMasseSalariale: { mois: string; montant: number }[];
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}

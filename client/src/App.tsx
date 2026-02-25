@@ -4,15 +4,106 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import AppLayout from "./components/app/AppLayout";
+import Dashboard from "./pages/app/Dashboard";
+import Employees from "./pages/app/Employees";
+import EmployeeDetail from "./pages/app/EmployeeDetail";
+import EmployeeForm from "./pages/app/EmployeeForm";
+import Settings from "./pages/app/Settings";
+import UsersPage from "./pages/app/Users";
+import { Loader2 } from "lucide-react";
 
+// Protected route wrapper — redirects to login if not authenticated
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
+            <span className="text-white font-bold text-lg">PH</span>
+          </div>
+          <Loader2 size={24} className="animate-spin text-blue-600" />
+          <p className="text-sm text-slate-400">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    window.location.href = "/login";
+    return null;
+  }
+
+  return <AppLayout>{children}</AppLayout>;
+}
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
+      {/* Landing Page */}
+      <Route path="/" component={Home} />
+
+      {/* Authentication */}
+      <Route path="/login" component={Login} />
+
+      {/* App Routes (Protected) */}
+      <Route path="/app">
+        {() => (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/employes">
+        {() => (
+          <ProtectedRoute>
+            <Employees />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/employes/nouveau">
+        {() => (
+          <ProtectedRoute>
+            <EmployeeForm />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/employes/:id/modifier">
+        {() => (
+          <ProtectedRoute>
+            <EmployeeForm />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/employes/:id">
+        {() => (
+          <ProtectedRoute>
+            <EmployeeDetail />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/parametres">
+        {() => (
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/utilisateurs">
+        {() => (
+          <ProtectedRoute>
+            <UsersPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+
+      {/* 404 */}
+      <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -30,10 +121,12 @@ function App() {
         defaultTheme="light"
         // switchable
       >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
