@@ -14,6 +14,8 @@ import EmployeeDetail from "./pages/app/EmployeeDetail";
 import EmployeeForm from "./pages/app/EmployeeForm";
 import Settings from "./pages/app/Settings";
 import UsersPage from "./pages/app/Users";
+import PayrollPeriods from "./pages/app/PayrollPeriods";
+import PayrollPeriodDetail from "./pages/app/PayrollPeriodDetail";
 import { Loader2 } from "lucide-react";
 
 // Protected route wrapper — redirects to login if not authenticated
@@ -84,6 +86,20 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <EmployeeDetail />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/paie/:id">
+        {() => (
+          <ProtectedRoute>
+            <PayrollPeriodDetail />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/paie">
+        {() => (
+          <ProtectedRoute>
+            <PayrollPeriods />
           </ProtectedRoute>
         )}
       </Route>

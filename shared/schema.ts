@@ -7,6 +7,8 @@ import { z } from "zod";
 import {
   ContractType,
   MaritalStatus,
+  PayElementType,
+  PayPeriodStatus,
   SectorType,
   UserRole,
   WorkRegime,
@@ -16,14 +18,18 @@ import {
 
 export const loginSchema = z.object({
   email: z.string().email("Adresse email invalide"),
-  motDePasse: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
+  motDePasse: z
+    .string()
+    .min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
 
 // --- Utilisateur ---
 
 export const createUtilisateurSchema = z.object({
   email: z.string().email("Adresse email invalide"),
-  motDePasse: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  motDePasse: z
+    .string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   nom: z.string().min(2, "Le nom est requis"),
   prenom: z.string().min(2, "Le prénom est requis"),
   role: z.nativeEnum(UserRole),
@@ -39,7 +45,11 @@ export const createEntrepriseSchema = z.object({
   codeCnss: z.string().min(5, "Le code CNSS est requis"),
   secteurActivite: z.nativeEnum(SectorType),
   telephone: z.string().optional(),
-  email: z.string().email("Adresse email invalide").optional().or(z.literal("")),
+  email: z
+    .string()
+    .email("Adresse email invalide")
+    .optional()
+    .or(z.literal("")),
   regimeTravail: z.nativeEnum(WorkRegime),
 });
 
@@ -49,11 +59,18 @@ export const createEmployeSchema = z.object({
   // Personal information
   nom: z.string().min(2, "Le nom est requis"),
   prenom: z.string().min(2, "Le prénom est requis"),
-  cin: z.string().min(8, "Le CIN doit contenir 8 caractères").max(8, "Le CIN doit contenir 8 caractères"),
+  cin: z
+    .string()
+    .min(8, "Le CIN doit contenir 8 caractères")
+    .max(8, "Le CIN doit contenir 8 caractères"),
   dateNaissance: z.string().min(1, "La date de naissance est requise"),
   adresse: z.string().min(5, "L'adresse est requise"),
   telephone: z.string().optional().or(z.literal("")),
-  email: z.string().email("Adresse email invalide").optional().or(z.literal("")),
+  email: z
+    .string()
+    .email("Adresse email invalide")
+    .optional()
+    .or(z.literal("")),
   situationFamiliale: z.nativeEnum(MaritalStatus),
   nbEnfants: z.number().min(0, "Nombre invalide").max(20),
   residenceFiscale: z.string().min(2, "La résidence fiscale est requise"),
@@ -83,9 +100,37 @@ export const updateParametreSchema = z.object({
   dateFinValidite: z.string().optional(),
 });
 
+// --- Période de Paie ---
+
+export const createPeriodePaieSchema = z.object({
+  mois: z.number().min(1).max(12),
+  annee: z.number().min(2020).max(2100),
+  dateDebut: z.string().min(1, "La date de début est requise"),
+  dateFin: z.string().min(1, "La date de fin est requise"),
+});
+
+// --- Éléments de Paie (Variables) ---
+
+export const createElementPaieSchema = z.object({
+  employeId: z.string().min(1, "L'employé est requis"),
+  type: z.nativeEnum(PayElementType),
+  libelle: z.string().min(1, "Le libellé est requis"),
+  montant: z.number().min(0, "Le montant doit être positif"),
+  heures: z.number().min(0).optional(),
+  taux: z.number().min(0).optional(),
+});
+
+export const batchElementsPaieSchema = z.object({
+  periodePaieId: z.string().min(1),
+  elements: z.array(createElementPaieSchema),
+});
+
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateUtilisateurInput = z.infer<typeof createUtilisateurSchema>;
 export type CreateEntrepriseInput = z.infer<typeof createEntrepriseSchema>;
 export type CreateEmployeInput = z.infer<typeof createEmployeSchema>;
 export type UpdateEmployeInput = z.infer<typeof updateEmployeSchema>;
 export type UpdateParametreInput = z.infer<typeof updateParametreSchema>;
+export type CreatePeriodePaieInput = z.infer<typeof createPeriodePaieSchema>;
+export type CreateElementPaieInput = z.infer<typeof createElementPaieSchema>;
+export type BatchElementsPaieInput = z.infer<typeof batchElementsPaieSchema>;

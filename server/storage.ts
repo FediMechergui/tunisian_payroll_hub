@@ -11,6 +11,7 @@ import type {
   Employe,
   PeriodePaie,
   ElementPaie,
+  BulletinPaie,
   Conge,
   DocumentRH,
   ParametreReglementaire,
@@ -40,6 +41,7 @@ class Storage {
   private conges = new Map<string, Conge>();
   private documents = new Map<string, DocumentRH>();
   private parametres = new Map<string, ParametreReglementaire>();
+  private bulletins = new Map<string, BulletinPaie>();
 
   constructor() {
     this.seed();
@@ -515,17 +517,32 @@ class Storage {
     return this.entreprises.get(id);
   }
 
-  createEntreprise(data: Omit<Entreprise, "id" | "createdAt" | "updatedAt">): Entreprise {
+  createEntreprise(
+    data: Omit<Entreprise, "id" | "createdAt" | "updatedAt">
+  ): Entreprise {
     const now = new Date().toISOString();
-    const e: Entreprise = { id: uuidv4(), ...data, createdAt: now, updatedAt: now };
+    const e: Entreprise = {
+      id: uuidv4(),
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.entreprises.set(e.id, e);
     return e;
   }
 
-  updateEntreprise(id: string, data: Partial<Entreprise>): Entreprise | undefined {
+  updateEntreprise(
+    id: string,
+    data: Partial<Entreprise>
+  ): Entreprise | undefined {
     const existing = this.entreprises.get(id);
     if (!existing) return undefined;
-    const updated = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      ...data,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
     this.entreprises.set(id, updated);
     return updated;
   }
@@ -533,7 +550,8 @@ class Storage {
   // --- Utilisateur ---
   getUtilisateurs(entrepriseId?: string): Omit<StoredUser, "motDePasseHash">[] {
     let users = Array.from(this.utilisateurs.values());
-    if (entrepriseId) users = users.filter((u) => u.entrepriseId === entrepriseId);
+    if (entrepriseId)
+      users = users.filter(u => u.entrepriseId === entrepriseId);
     return users.map(({ motDePasseHash, ...rest }) => rest);
   }
 
@@ -542,20 +560,36 @@ class Storage {
   }
 
   getUtilisateurByEmail(email: string): StoredUser | undefined {
-    return Array.from(this.utilisateurs.values()).find((u) => u.email === email);
+    return Array.from(this.utilisateurs.values()).find(u => u.email === email);
   }
 
-  createUtilisateur(data: Omit<StoredUser, "id" | "createdAt" | "updatedAt" | "actif">): StoredUser {
+  createUtilisateur(
+    data: Omit<StoredUser, "id" | "createdAt" | "updatedAt" | "actif">
+  ): StoredUser {
     const now = new Date().toISOString();
-    const u: StoredUser = { id: uuidv4(), ...data, actif: true, createdAt: now, updatedAt: now };
+    const u: StoredUser = {
+      id: uuidv4(),
+      ...data,
+      actif: true,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.utilisateurs.set(u.id, u);
     return u;
   }
 
-  updateUtilisateur(id: string, data: Partial<StoredUser>): StoredUser | undefined {
+  updateUtilisateur(
+    id: string,
+    data: Partial<StoredUser>
+  ): StoredUser | undefined {
     const existing = this.utilisateurs.get(id);
     if (!existing) return undefined;
-    const updated = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      ...data,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
     this.utilisateurs.set(id, updated);
     return updated;
   }
@@ -570,12 +604,12 @@ class Storage {
 
   // --- Employé ---
   getEmployes(entrepriseId?: string, search?: string): Employe[] {
-    let emps = Array.from(this.employes.values()).filter((e) => e.actif);
-    if (entrepriseId) emps = emps.filter((e) => e.entrepriseId === entrepriseId);
+    let emps = Array.from(this.employes.values()).filter(e => e.actif);
+    if (entrepriseId) emps = emps.filter(e => e.entrepriseId === entrepriseId);
     if (search) {
       const s = search.toLowerCase();
       emps = emps.filter(
-        (e) =>
+        e =>
           e.nom.toLowerCase().includes(s) ||
           e.prenom.toLowerCase().includes(s) ||
           e.cin.includes(s) ||
@@ -591,9 +625,19 @@ class Storage {
     return this.employes.get(id);
   }
 
-  createEmploye(data: Omit<Employe, "id" | "createdAt" | "updatedAt" | "actif">, entrepriseId: string): Employe {
+  createEmploye(
+    data: Omit<Employe, "id" | "createdAt" | "updatedAt" | "actif">,
+    entrepriseId: string
+  ): Employe {
     const now = new Date().toISOString();
-    const e: Employe = { id: uuidv4(), ...data, entrepriseId, actif: true, createdAt: now, updatedAt: now };
+    const e: Employe = {
+      id: uuidv4(),
+      ...data,
+      entrepriseId,
+      actif: true,
+      createdAt: now,
+      updatedAt: now,
+    };
     this.employes.set(e.id, e);
     return e;
   }
@@ -601,7 +645,12 @@ class Storage {
   updateEmploye(id: string, data: Partial<Employe>): Employe | undefined {
     const existing = this.employes.get(id);
     if (!existing) return undefined;
-    const updated = { ...existing, ...data, id, updatedAt: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      ...data,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
     this.employes.set(id, updated);
     return updated;
   }
@@ -617,7 +666,7 @@ class Storage {
   // --- Paramètre Réglementaire ---
   getParametres(categorie?: string): ParametreReglementaire[] {
     let params = Array.from(this.parametres.values());
-    if (categorie) params = params.filter((p) => p.categorie === categorie);
+    if (categorie) params = params.filter(p => p.categorie === categorie);
     return params;
   }
 
@@ -625,7 +674,10 @@ class Storage {
     return this.parametres.get(id);
   }
 
-  updateParametre(id: string, data: Partial<ParametreReglementaire>): ParametreReglementaire | undefined {
+  updateParametre(
+    id: string,
+    data: Partial<ParametreReglementaire>
+  ): ParametreReglementaire | undefined {
     const existing = this.parametres.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...data, id };
@@ -633,19 +685,141 @@ class Storage {
     return updated;
   }
 
+  // --- Période de Paie ---
+  getPeriodesPaie(entrepriseId: string): PeriodePaie[] {
+    return Array.from(this.periodesPaie.values())
+      .filter(p => p.entrepriseId === entrepriseId)
+      .sort((a, b) => {
+        if (a.annee !== b.annee) return b.annee - a.annee;
+        return b.mois - a.mois;
+      });
+  }
+
+  getPeriodePaie(id: string): PeriodePaie | undefined {
+    return this.periodesPaie.get(id);
+  }
+
+  getPeriodePaieByMonth(
+    entrepriseId: string,
+    mois: number,
+    annee: number
+  ): PeriodePaie | undefined {
+    return Array.from(this.periodesPaie.values()).find(
+      p =>
+        p.entrepriseId === entrepriseId && p.mois === mois && p.annee === annee
+    );
+  }
+
+  createPeriodePaie(
+    data: Omit<PeriodePaie, "id" | "createdAt" | "updatedAt" | "statut">
+  ): PeriodePaie {
+    const now = new Date().toISOString();
+    const p: PeriodePaie = {
+      id: uuidv4(),
+      ...data,
+      statut: PayPeriodStatus.EN_COURS,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.periodesPaie.set(p.id, p);
+    return p;
+  }
+
+  updatePeriodePaieStatut(
+    id: string,
+    statut: PayPeriodStatus
+  ): PeriodePaie | undefined {
+    const existing = this.periodesPaie.get(id);
+    if (!existing) return undefined;
+    existing.statut = statut;
+    existing.updatedAt = new Date().toISOString();
+    return existing;
+  }
+
+  // --- Éléments de Paie ---
+  getElementsPaie(periodePaieId: string, employeId?: string): ElementPaie[] {
+    let els = Array.from(this.elementsPaie.values()).filter(
+      e => e.periodePaieId === periodePaieId
+    );
+    if (employeId) els = els.filter(e => e.employeId === employeId);
+    return els;
+  }
+
+  createElementPaie(data: Omit<ElementPaie, "id">): ElementPaie {
+    const el: ElementPaie = { id: uuidv4(), ...data };
+    this.elementsPaie.set(el.id, el);
+    return el;
+  }
+
+  deleteElementsPaie(periodePaieId: string, employeId?: string): number {
+    let count = 0;
+    const toDelete: string[] = [];
+    this.elementsPaie.forEach((el, id) => {
+      if (
+        el.periodePaieId === periodePaieId &&
+        (!employeId || el.employeId === employeId)
+      ) {
+        toDelete.push(id);
+      }
+    });
+    for (const id of toDelete) {
+      this.elementsPaie.delete(id);
+      count++;
+    }
+    return count;
+  }
+
+  // --- Bulletins de Paie ---
+  getBulletins(periodePaieId: string): BulletinPaie[] {
+    return Array.from(this.bulletins.values()).filter(
+      b => b.periodePaieId === periodePaieId
+    );
+  }
+
+  getBulletin(id: string): BulletinPaie | undefined {
+    return this.bulletins.get(id);
+  }
+
+  getBulletinsByEmploye(employeId: string): BulletinPaie[] {
+    return Array.from(this.bulletins.values())
+      .filter(b => b.employeId === employeId)
+      .sort((a, b) => b.dateGeneration.localeCompare(a.dateGeneration));
+  }
+
+  saveBulletins(bulletins: BulletinPaie[]): void {
+    for (const b of bulletins) {
+      this.bulletins.set(b.id, b);
+    }
+  }
+
+  deleteBulletins(periodePaieId: string): number {
+    let count = 0;
+    const toDelete: string[] = [];
+    this.bulletins.forEach((b, id) => {
+      if (b.periodePaieId === periodePaieId) {
+        toDelete.push(id);
+      }
+    });
+    for (const id of toDelete) {
+      this.bulletins.delete(id);
+      count++;
+    }
+    return count;
+  }
+
   // --- Congés ---
   getConges(employeId?: string): Conge[] {
     let c = Array.from(this.conges.values());
-    if (employeId) c = c.filter((x) => x.employeId === employeId);
+    if (employeId) c = c.filter(x => x.employeId === employeId);
     return c;
   }
 
   // --- Dashboard Stats ---
   getDashboardStats(entrepriseId: string): DashboardStats {
     const emps = this.getEmployes(entrepriseId);
-    const contratsActifs = emps.filter((e) => e.actif).length;
+    const contratsActifs = emps.filter(e => e.actif).length;
     const congesEnAttente = Array.from(this.conges.values()).filter(
-      (c) => c.statut === LeaveStatus.EN_ATTENTE
+      c => c.statut === LeaveStatus.EN_ATTENTE
     ).length;
 
     // Group by department
@@ -653,31 +827,116 @@ class Storage {
     for (const e of emps) {
       deptMap.set(e.departement, (deptMap.get(e.departement) || 0) + 1);
     }
-    const employesParDepartement = Array.from(deptMap.entries()).map(([departement, count]) => ({
-      departement,
-      count,
-    }));
+    const employesParDepartement = Array.from(deptMap.entries()).map(
+      ([departement, count]) => ({
+        departement,
+        count,
+      })
+    );
 
     // Group by contract type
     const contratMap = new Map<ContractType, number>();
     for (const e of emps) {
       contratMap.set(e.typeContrat, (contratMap.get(e.typeContrat) || 0) + 1);
     }
-    const employesParContrat = Array.from(contratMap.entries()).map(([type, count]) => ({
-      type,
-      count,
-    }));
+    const employesParContrat = Array.from(contratMap.entries()).map(
+      ([type, count]) => ({
+        type,
+        count,
+      })
+    );
 
     // Mass salariale
     const masseSalariale = emps.reduce((sum, e) => sum + e.salaireBase, 0);
 
-    // Simulated monthly evolution
-    const months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
+    // Simulated monthly evolution (fallback when no payroll data)
+    const months = [
+      "Jan",
+      "Fév",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Aoû",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Déc",
+    ];
     const currentMonth = new Date().getMonth();
-    const evolutionMasseSalariale = months.slice(0, currentMonth + 1).map((mois, i) => ({
-      mois,
-      montant: masseSalariale * (0.92 + i * 0.008 + Math.random() * 0.02),
-    }));
+    const evolutionMasseSalariale = months
+      .slice(0, currentMonth + 1)
+      .map((mois, i) => ({
+        mois,
+        montant: masseSalariale * (0.92 + i * 0.008 + Math.random() * 0.02),
+      }));
+
+    // Phase 2 — Payroll analytics from real bulletins
+    const periodes = this.getPeriodesPaie(entrepriseId);
+    let payroll: DashboardStats["payroll"] = undefined;
+
+    if (periodes.length > 0) {
+      // Sort by year desc, month desc to get latest first
+      const sorted = [...periodes].sort((a, b) =>
+        a.annee !== b.annee ? b.annee - a.annee : b.mois - a.mois
+      );
+      const latest = sorted[0];
+      const latestBulletins = this.getBulletins(latest.id);
+
+      const totalBrut = latestBulletins.reduce((s, b) => s + b.salaireBrut, 0);
+      const totalNet = latestBulletins.reduce((s, b) => s + b.netAPayer, 0);
+      const totalCnss = latestBulletins.reduce((s, b) => s + b.cnssSalarial, 0);
+      const totalIrpp = latestBulletins.reduce((s, b) => s + b.irpp, 0);
+      const coutEmployeur = latestBulletins.reduce(
+        (s, b) => s + b.coutTotalEmployeur,
+        0
+      );
+
+      const periodesCalculees = periodes.filter(
+        p => p.statut !== PayPeriodStatus.EN_COURS
+      ).length;
+      const periodesFinalisees = periodes.filter(
+        p => p.statut === PayPeriodStatus.FINALISEE
+      ).length;
+
+      // Build evolution from all periods with bulletins
+      const monthLabels = [
+        "Jan",
+        "Fév",
+        "Mar",
+        "Avr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Aoû",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Déc",
+      ];
+      const evolutionPayroll = sorted.reverse().map(p => {
+        const buls = this.getBulletins(p.id);
+        return {
+          mois: `${monthLabels[p.mois - 1]} ${p.annee}`,
+          brut: buls.reduce((s, b) => s + b.salaireBrut, 0),
+          net: buls.reduce((s, b) => s + b.netAPayer, 0),
+          coutEmployeur: buls.reduce((s, b) => s + b.coutTotalEmployeur, 0),
+        };
+      });
+
+      payroll = {
+        dernierePeriode: `${monthLabels[latest.mois - 1]} ${latest.annee}`,
+        totalBrut,
+        totalNet,
+        totalCnss,
+        totalIrpp,
+        coutEmployeur,
+        periodesCalculees,
+        periodesFinalisees,
+        evolutionPayroll,
+      };
+    }
 
     return {
       totalEmployes: emps.length,
@@ -687,6 +946,7 @@ class Storage {
       employesParDepartement,
       employesParContrat,
       evolutionMasseSalariale,
+      payroll,
     };
   }
 }

@@ -53,8 +53,6 @@ const navItems: NavItem[] = [
     label: "Paie",
     href: "/app/paie",
     icon: <Wallet size={20} />,
-    disabled: true,
-    disabledLabel: "Phase 2",
   },
   {
     label: "Congés",

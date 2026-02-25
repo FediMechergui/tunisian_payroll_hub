@@ -14,6 +14,9 @@ import type {
   DashboardStats,
   CreateEmployeRequest,
   UpdateEmployeRequest,
+  PeriodePaie,
+  BulletinPaie,
+  ElementPaie,
 } from "@shared/types";
 
 const api = axios.create({
@@ -26,8 +29,8 @@ const api = axios.create({
 
 // Response interceptor — redirect to login on 401
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
+  response => response,
+  error => {
     if (error.response?.status === 401) {
       // Only redirect if we're in the /app section
       if (window.location.pathname.startsWith("/app")) {
@@ -116,6 +119,78 @@ export const parametresApi = {
 
 export const dashboardApi = {
   getStats: () => api.get<ApiResponse<DashboardStats>>("/dashboard/stats"),
+};
+
+// --- Payroll API ---
+
+export const payrollApi = {
+  // Periods
+  listPeriodes: () => api.get<ApiResponse<PeriodePaie[]>>("/payroll/periodes"),
+
+  getPeriode: (id: string) =>
+    api.get<
+      ApiResponse<{
+        periode: PeriodePaie;
+        bulletins: BulletinPaie[];
+        summary: any;
+      }>
+    >(`/payroll/periodes/${id}`),
+
+  createPeriode: (data: {
+    mois: number;
+    annee: number;
+    dateDebut: string;
+    dateFin: string;
+  }) => api.post<ApiResponse<PeriodePaie>>("/payroll/periodes", data),
+
+  updateStatut: (id: string, statut: string) =>
+    api.put<ApiResponse<PeriodePaie>>(`/payroll/periodes/${id}/statut`, {
+      statut,
+    }),
+
+  // Elements (variable inputs)
+  getElements: (periodeId: string, employeId?: string) =>
+    api.get<ApiResponse<ElementPaie[]>>(
+      `/payroll/periodes/${periodeId}/elements`,
+      {
+        params: employeId ? { employeId } : {},
+      }
+    ),
+
+  addElements: (periodeId: string, elements: any[]) =>
+    api.post<ApiResponse<ElementPaie[]>>(
+      `/payroll/periodes/${periodeId}/elements`,
+      { elements }
+    ),
+
+  clearElements: (periodeId: string, employeId?: string) =>
+    api.delete<ApiResponse>(`/payroll/periodes/${periodeId}/elements`, {
+      params: employeId ? { employeId } : {},
+    }),
+
+  // Calculation
+  calculer: (periodeId: string) =>
+    api.post<ApiResponse<{ bulletins: BulletinPaie[]; summary: any }>>(
+      `/payroll/periodes/${periodeId}/calculer`
+    ),
+
+  valider: (periodeId: string) =>
+    api.post<ApiResponse>(`/payroll/periodes/${periodeId}/valider`),
+
+  finaliser: (periodeId: string) =>
+    api.post<ApiResponse>(`/payroll/periodes/${periodeId}/finaliser`),
+
+  // Bulletins
+  getBulletin: (id: string) =>
+    api.get<ApiResponse<BulletinPaie>>(`/payroll/bulletins/${id}`),
+
+  downloadPDF: (id: string) =>
+    api.get(`/payroll/bulletins/${id}/pdf`, { responseType: "blob" }),
+
+  getEmployeBulletins: (employeId: string) =>
+    api.get<ApiResponse<BulletinPaie[]>>(
+      `/payroll/employes/${employeId}/bulletins`
+    ),
 };
 
 export default api;

@@ -287,6 +287,23 @@ export interface DashboardStats {
   employesParDepartement: { departement: string; count: number }[];
   employesParContrat: { type: ContractType; count: number }[];
   evolutionMasseSalariale: { mois: string; montant: number }[];
+  // Phase 2 — Payroll analytics
+  payroll?: {
+    dernierePeriode: string;
+    totalBrut: number;
+    totalNet: number;
+    totalCnss: number;
+    totalIrpp: number;
+    coutEmployeur: number;
+    periodesCalculees: number;
+    periodesFinalisees: number;
+    evolutionPayroll: {
+      mois: string;
+      brut: number;
+      net: number;
+      coutEmployeur: number;
+    }[];
+  };
 }
 
 export interface ApiResponse<T = unknown> {

@@ -15,6 +15,7 @@ import { usersRouter } from "./routes/users";
 import { entreprisesRouter } from "./routes/entreprises";
 import { parametresRouter } from "./routes/parametres";
 import { dashboardRouter } from "./routes/dashboard";
+import { payrollRouter } from "./routes/payroll";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -40,6 +41,7 @@ async function startServer() {
   app.use("/api/entreprises", entreprisesRouter);
   app.use("/api/parametres", parametresRouter);
   app.use("/api/dashboard", dashboardRouter);
+  app.use("/api/payroll", payrollRouter);
 
   // Serve static files from dist/public in production
   const staticPath =
