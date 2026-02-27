@@ -20,6 +20,9 @@ import { congesRouter } from "./routes/conges";
 import { documentsRouter } from "./routes/documents";
 import { declarationsRouter } from "./routes/declarations";
 import { reportsRouter } from "./routes/reports";
+import { notificationsRouter } from "./routes/notifications";
+import { apiKeysRouter } from "./routes/api-keys";
+import { externalApiRouter } from "./routes/external-api";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,6 +53,9 @@ async function startServer() {
   app.use("/api/documents", documentsRouter);
   app.use("/api/declarations", declarationsRouter);
   app.use("/api/reports", reportsRouter);
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/api-keys", apiKeysRouter);
+  app.use("/api/v1", externalApiRouter);
 
   // Serve static files from dist/public in production
   const staticPath =

@@ -112,6 +112,29 @@ export enum ReportType {
   PERSONNALISE = "personnalise",
 }
 
+// --- Phase 5 Enums ---
+
+export enum NotificationType {
+  CONGE_DEMANDE = "conge_demande",
+  CONGE_APPROUVE = "conge_approuve",
+  CONGE_REJETE = "conge_rejete",
+  PAIE_CALCULEE = "paie_calculee",
+  PAIE_VALIDEE = "paie_validee",
+  PAIE_FINALISEE = "paie_finalisee",
+  DOCUMENT_GENERE = "document_genere",
+  DECLARATION_GENEREE = "declaration_generee",
+  EMPLOYE_CREE = "employe_cree",
+  CONTRAT_EXPIRATION = "contrat_expiration",
+  ALERTE_SYSTEME = "alerte_systeme",
+}
+
+export enum NotificationPriority {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  URGENT = "urgent",
+}
+
 // --- Entity Interfaces ---
 
 export interface Entreprise {
@@ -254,6 +277,47 @@ export interface ReportConfig {
   createdAt: string;
 }
 
+// --- Phase 5: Notifications ---
+
+export interface Notification {
+  id: string;
+  entrepriseId: string;
+  destinataireId: string; // userId
+  type: NotificationType;
+  priorite: NotificationPriority;
+  titre: string;
+  message: string;
+  lien?: string; // app-relative link, e.g. "/app/conges"
+  lu: boolean;
+  createdAt: string;
+}
+
+// --- Phase 5: External API Keys ---
+
+export interface ApiKey {
+  id: string;
+  entrepriseId: string;
+  nom: string;
+  cle: string; // hashed key (prefix shown)
+  prefixe: string; // first 8 chars for display
+  permissions: ApiPermission[];
+  actif: boolean;
+  derniereUtilisation?: string;
+  limiteRequetes: number; // per hour
+  createdAt: string;
+  updatedAt: string;
+}
+
+export enum ApiPermission {
+  EMPLOYES_READ = "employes:read",
+  EMPLOYES_WRITE = "employes:write",
+  PAIE_READ = "paie:read",
+  CONGES_READ = "conges:read",
+  CONGES_WRITE = "conges:write",
+  DASHBOARD_READ = "dashboard:read",
+  DOCUMENTS_READ = "documents:read",
+}
+
 export interface ParametreReglementaire {
   id: string;
   nom: string;
@@ -389,4 +453,15 @@ export interface PaginatedResponse<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+// --- Phase 5: External API Documentation ---
+
+export interface ApiEndpointDoc {
+  method: "GET" | "POST" | "PUT" | "DELETE";
+  path: string;
+  description: string;
+  permission: ApiPermission;
+  parameters?: { name: string; type: string; required: boolean; description: string }[];
+  responseExample?: unknown;
 }

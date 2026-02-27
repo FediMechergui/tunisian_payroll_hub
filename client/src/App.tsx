@@ -22,6 +22,8 @@ import Documents from "./pages/app/Documents";
 import Declarations from "./pages/app/Declarations";
 import Reports from "./pages/app/Reports";
 import Analytics from "./pages/app/Analytics";
+import Notifications from "./pages/app/Notifications";
+import ApiKeys from "./pages/app/ApiKeys";
 import { Loader2 } from "lucide-react";
 
 // Protected route wrapper — redirects to login if not authenticated
@@ -162,6 +164,20 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <UsersPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/notifications">
+        {() => (
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/cles-api">
+        {() => (
+          <ProtectedRoute>
+            <ApiKeys />
           </ProtectedRoute>
         )}
       </Route>

@@ -6,6 +6,7 @@ import { Router, type Request, type Response } from "express";
 import { storage } from "../storage";
 import { requireAuth, requireMinRole } from "../auth";
 import { UserRole } from "../../shared/types";
+import { notificationService } from "../notification-service";
 
 export const employeesRouter = Router();
 
@@ -73,6 +74,8 @@ employeesRouter.post(
   (req: Request, res: Response) => {
     try {
       const emp = storage.createEmploye(req.body, req.user!.entrepriseId);
+      storage.invalidateCache("dashboard");
+      notificationService.onEmployeeCreated(req.user!.entrepriseId, `${emp.prenom} ${emp.nom}`);
       return res.status(201).json({ success: true, data: emp });
     } catch (error) {
       return res.status(400).json({

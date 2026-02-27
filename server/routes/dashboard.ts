@@ -12,6 +12,6 @@ dashboardRouter.use(requireAuth);
 
 // GET /api/dashboard/stats
 dashboardRouter.get("/stats", (req: Request, res: Response) => {
-  const stats = storage.getDashboardStats(req.user!.entrepriseId);
+  const stats = storage.getCachedDashboardStats(req.user!.entrepriseId);
   return res.json({ success: true, data: stats });
 });

@@ -16,6 +16,7 @@ import {
   SectorType,
   UserRole,
   WorkRegime,
+  ApiPermission,
 } from "./types";
 
 // --- Auth ---
@@ -185,3 +186,13 @@ export const generateReportSchema = z.object({
 export type GenerateDocumentInput = z.infer<typeof generateDocumentSchema>;
 export type GenerateDeclarationInput = z.infer<typeof generateDeclarationSchema>;
 export type GenerateReportInput = z.infer<typeof generateReportSchema>;
+
+// --- Phase 5: API Keys ---
+
+export const createApiKeySchema = z.object({
+  nom: z.string().min(2, "Le nom est requis"),
+  permissions: z.array(z.nativeEnum(ApiPermission)).min(1, "Au moins une permission requise"),
+  limiteRequetes: z.number().min(10).max(10000).default(1000),
+});
+
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;

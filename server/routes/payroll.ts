@@ -10,6 +10,7 @@ import { calculatePayroll, runPayrollForPeriod } from "../payroll-engine";
 import { generatePayslipPDF } from "../payslip-pdf";
 import { createPeriodePaieSchema, createElementPaieSchema } from "../../shared/schema";
 import { PayPeriodStatus, UserRole, PayElementType } from "../../shared/types";
+import { notificationService } from "../notification-service";
 
 export const payrollRouter = Router();
 
@@ -179,6 +180,11 @@ payrollRouter.post("/periodes/:id/calculer", requireMinRole(UserRole.ADMIN_PAIE)
       totalCoutEmployeur: bulletins.reduce((s, b) => s + b.coutTotalEmployeur, 0),
     };
 
+    const monthNames = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+    const pLabel = `${monthNames[periode.mois - 1]} ${periode.annee}`;
+    notificationService.onPayrollCalculated(req.user!.entrepriseId, pLabel);
+    storage.invalidateCache("dashboard");
+
     return res.json({ success: true, data: { bulletins, summary } });
   } catch (error: any) {
     return res.status(500).json({ success: false, error: error.message || "Erreur de calcul" });
@@ -196,6 +202,10 @@ payrollRouter.post("/periodes/:id/valider", requireMinRole(UserRole.ADMIN_RH), (
   }
 
   storage.updatePeriodePaieStatut(periode.id, PayPeriodStatus.VALIDEE);
+  const months = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+  const label = `${months[periode.mois - 1]} ${periode.annee}`;
+  notificationService.onPayrollValidated(req.user!.entrepriseId, label);
+  storage.invalidateCache("dashboard");
   return res.json({ success: true, data: { message: "Période validée" } });
 });
 
@@ -210,6 +220,10 @@ payrollRouter.post("/periodes/:id/finaliser", requireMinRole(UserRole.ADMIN_RH),
   }
 
   storage.updatePeriodePaieStatut(periode.id, PayPeriodStatus.FINALISEE);
+  const months2 = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
+  const label2 = `${months2[periode.mois - 1]} ${periode.annee}`;
+  notificationService.onPayrollFinalized(req.user!.entrepriseId, label2);
+  storage.invalidateCache("dashboard");
   return res.json({ success: true, data: { message: "Période finalisée" } });
 });
 

@@ -9,6 +9,7 @@ import { storage } from "../storage";
 import { createCongeSchema, updateCongeStatutSchema } from "../../shared/schema";
 import { LeaveStatus, UserRole } from "../../shared/types";
 import { ROLE_HIERARCHY } from "../../shared/const";
+import { notificationService } from "../notification-service";
 
 export const congesRouter = Router();
 
@@ -135,6 +136,15 @@ congesRouter.post("/", (req: Request, res: Response) => {
     motif: motif || undefined,
   });
 
+  storage.invalidateCache("dashboard");
+  notificationService.onLeaveRequested(
+    req.user!.entrepriseId,
+    `${emp.prenom} ${emp.nom}`,
+    typeConge,
+    dateDebut,
+    dateFin
+  );
+
   return res.status(201).json({ success: true, data: conge });
 });
 
@@ -181,6 +191,21 @@ congesRouter.put(
       newStatut,
       req.user!.id
     );
+
+    // Notify the employee
+    if (parsed.data.statut === "approuve" || parsed.data.statut === "rejete") {
+      const emp = storage.getEmploye(conge.employeId);
+      // Find the user linked to this employee
+      const users = storage.getUtilisateurs(req.user!.entrepriseId);
+      const empUser = users.find(u => u.employeId === conge.employeId);
+      notificationService.onLeaveDecision(
+        req.user!.entrepriseId,
+        empUser?.id,
+        parsed.data.statut as "approuve" | "rejete",
+        conge.typeConge
+      );
+    }
+    storage.invalidateCache("dashboard");
 
     return res.json({ success: true, data: updated });
   }

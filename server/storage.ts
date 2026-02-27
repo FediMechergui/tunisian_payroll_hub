@@ -18,6 +18,8 @@ import type {
   ReportConfig,
   ParametreReglementaire,
   DashboardStats,
+  Notification,
+  ApiKey,
 } from "../shared/types";
 import {
   UserRole,
@@ -29,6 +31,9 @@ import {
   PayPeriodStatus,
   LeaveStatus,
   DeclarationStatus,
+  NotificationType,
+  NotificationPriority,
+  ApiPermission,
 } from "../shared/types";
 
 // Internal user type with password hash
@@ -48,6 +53,13 @@ class Storage {
   private reports = new Map<string, ReportConfig>();
   private parametres = new Map<string, ParametreReglementaire>();
   private bulletins = new Map<string, BulletinPaie>();
+  // Phase 5
+  private notifications = new Map<string, Notification>();
+  private apiKeys = new Map<string, ApiKey>();
+
+  // Performance cache with TTL
+  private cache = new Map<string, { data: unknown; expiresAt: number }>();
+  private CACHE_TTL = 30_000; // 30 seconds
 
   constructor() {
     this.seed();
@@ -1327,6 +1339,188 @@ class Storage {
       payroll,
       analytics,
     };
+  }
+
+  // --- Phase 5: Cache helpers ---
+
+  private getCached<T>(key: string): T | undefined {
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return entry.data as T;
+  }
+
+  private setCache(key: string, data: unknown): void {
+    this.cache.set(key, { data, expiresAt: Date.now() + this.CACHE_TTL });
+  }
+
+  invalidateCache(pattern?: string): void {
+    if (!pattern) {
+      this.cache.clear();
+      return;
+    }
+    for (const key of Array.from(this.cache.keys())) {
+      if (key.includes(pattern)) this.cache.delete(key);
+    }
+  }
+
+  getCachedDashboardStats(entrepriseId: string): DashboardStats {
+    const key = `dashboard:${entrepriseId}`;
+    const cached = this.getCached<DashboardStats>(key);
+    if (cached) return cached;
+    const stats = this.getDashboardStats(entrepriseId);
+    this.setCache(key, stats);
+    return stats;
+  }
+
+  // --- Phase 5: Notifications ---
+
+  getNotifications(userId: string): Notification[] {
+    return Array.from(this.notifications.values())
+      .filter(n => n.destinataireId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  getUnreadCount(userId: string): number {
+    return Array.from(this.notifications.values())
+      .filter(n => n.destinataireId === userId && !n.lu).length;
+  }
+
+  createNotification(data: Omit<Notification, "id" | "lu" | "createdAt">): Notification {
+    const n: Notification = {
+      id: uuidv4(),
+      ...data,
+      lu: false,
+      createdAt: new Date().toISOString(),
+    };
+    this.notifications.set(n.id, n);
+    return n;
+  }
+
+  markNotificationRead(id: string, userId: string): boolean {
+    const n = this.notifications.get(id);
+    if (!n || n.destinataireId !== userId) return false;
+    n.lu = true;
+    return true;
+  }
+
+  markAllNotificationsRead(userId: string): number {
+    let count = 0;
+    for (const n of Array.from(this.notifications.values())) {
+      if (n.destinataireId === userId && !n.lu) {
+        n.lu = true;
+        count++;
+      }
+    }
+    return count;
+  }
+
+  deleteNotification(id: string, userId: string): boolean {
+    const n = this.notifications.get(id);
+    if (!n || n.destinataireId !== userId) return false;
+    return this.notifications.delete(id);
+  }
+
+  // Broadcast a notification to all users with a minimum role in an enterprise
+  broadcastNotification(
+    entrepriseId: string,
+    minRole: UserRole,
+    data: Omit<Notification, "id" | "lu" | "createdAt" | "destinataireId" | "entrepriseId">
+  ): Notification[] {
+    const roleLevel: Record<string, number> = {
+      super_admin: 6, admin_rh: 5, admin_paie: 4, comptable: 3, manager: 2, employe: 1,
+    };
+    const minLevel = roleLevel[minRole] || 0;
+    const users = Array.from(this.utilisateurs.values())
+      .filter(u => u.entrepriseId === entrepriseId && u.actif && (roleLevel[u.role] || 0) >= minLevel);
+
+    return users.map(u =>
+      this.createNotification({ ...data, entrepriseId, destinataireId: u.id })
+    );
+  }
+
+  // --- Phase 5: API Keys ---
+
+  getApiKeys(entrepriseId: string): Omit<ApiKey, "cle">[] {
+    return Array.from(this.apiKeys.values())
+      .filter(k => k.entrepriseId === entrepriseId)
+      .map(({ cle, ...rest }) => rest);
+  }
+
+  getApiKeyByRaw(rawKey: string): ApiKey | undefined {
+    // rawKey format: "ph_<id>_<secret>"
+    for (const k of Array.from(this.apiKeys.values())) {
+      if (k.actif && k.cle === rawKey) return k;
+    }
+    return undefined;
+  }
+
+  createApiKey(data: {
+    entrepriseId: string;
+    nom: string;
+    permissions: string[];
+    limiteRequetes: number;
+  }): { apiKey: Omit<ApiKey, "cle">; rawKey: string } {
+    const now = new Date().toISOString();
+    const id = uuidv4();
+    const secret = uuidv4().replace(/-/g, "");
+    const rawKey = `ph_${id.substring(0, 8)}_${secret}`;
+    const prefixe = rawKey.substring(0, 12) + "...";
+
+    const key: ApiKey = {
+      id,
+      entrepriseId: data.entrepriseId,
+      nom: data.nom,
+      cle: rawKey,
+      prefixe,
+      permissions: data.permissions as ApiPermission[],
+      actif: true,
+      limiteRequetes: data.limiteRequetes,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.apiKeys.set(id, key);
+
+    const { cle, ...safe } = key;
+    return { apiKey: safe, rawKey };
+  }
+
+  updateApiKeyLastUsed(id: string): void {
+    const k = this.apiKeys.get(id);
+    if (k) k.derniereUtilisation = new Date().toISOString();
+  }
+
+  toggleApiKey(id: string, entrepriseId: string): ApiKey | undefined {
+    const k = this.apiKeys.get(id);
+    if (!k || k.entrepriseId !== entrepriseId) return undefined;
+    k.actif = !k.actif;
+    k.updatedAt = new Date().toISOString();
+    const { cle, ...safe } = k;
+    return safe as ApiKey;
+  }
+
+  deleteApiKey(id: string, entrepriseId: string): boolean {
+    const k = this.apiKeys.get(id);
+    if (!k || k.entrepriseId !== entrepriseId) return false;
+    return this.apiKeys.delete(id);
+  }
+
+  // Rate limiting for API keys
+  private rateLimits = new Map<string, { count: number; resetAt: number }>();
+
+  checkRateLimit(keyId: string, limit: number): { allowed: boolean; remaining: number; resetAt: number } {
+    const now = Date.now();
+    let entry = this.rateLimits.get(keyId);
+    if (!entry || now > entry.resetAt) {
+      entry = { count: 0, resetAt: now + 3600_000 }; // 1 hour window
+      this.rateLimits.set(keyId, entry);
+    }
+    entry.count++;
+    const remaining = Math.max(0, limit - entry.count);
+    return { allowed: entry.count <= limit, remaining, resetAt: entry.resetAt };
   }
 }
 

@@ -21,6 +21,9 @@ import type {
   DocumentRH,
   Declaration,
   ReportConfig,
+  Notification,
+  ApiKey,
+  ApiPermission,
 } from "@shared/types";
 
 const api = axios.create({
@@ -326,6 +329,46 @@ export const reportsApi = {
   get: (id: string) => api.get<ApiResponse<ReportConfig>>(`/reports/${id}`),
 
   delete: (id: string) => api.delete<ApiResponse>(`/reports/${id}`),
+};
+
+// --- Notifications API ---
+
+export const notificationsApi = {
+  list: () =>
+    api.get<ApiResponse<{ notifications: Notification[]; unreadCount: number }>>(
+      "/notifications"
+    ),
+
+  unreadCount: () =>
+    api.get<ApiResponse<number>>("/notifications/unread-count"),
+
+  markRead: (id: string) =>
+    api.put<ApiResponse>(`/notifications/${id}/read`),
+
+  markAllRead: () =>
+    api.put<ApiResponse>("/notifications/read-all"),
+
+  delete: (id: string) =>
+    api.delete<ApiResponse>(`/notifications/${id}`),
+};
+
+// --- API Keys API ---
+
+export const apiKeysApi = {
+  list: () =>
+    api.get<ApiResponse<Omit<ApiKey, "cle">[]>>("/api-keys"),
+
+  create: (data: { nom: string; permissions: string[]; limiteRequetes: number }) =>
+    api.post<ApiResponse<Omit<ApiKey, "cle"> & { rawKey: string }>>(
+      "/api-keys",
+      data
+    ),
+
+  toggle: (id: string) =>
+    api.put<ApiResponse<ApiKey>>(`/api-keys/${id}/toggle`),
+
+  delete: (id: string) =>
+    api.delete<ApiResponse>(`/api-keys/${id}`),
 };
 
 export default api;
