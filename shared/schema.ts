@@ -6,6 +6,7 @@
 import { z } from "zod";
 import {
   ContractType,
+  LeaveType,
   MaritalStatus,
   PayElementType,
   PayPeriodStatus,
@@ -131,6 +132,25 @@ export type CreateEntrepriseInput = z.infer<typeof createEntrepriseSchema>;
 export type CreateEmployeInput = z.infer<typeof createEmployeSchema>;
 export type UpdateEmployeInput = z.infer<typeof updateEmployeSchema>;
 export type UpdateParametreInput = z.infer<typeof updateParametreSchema>;
+// --- Congés ---
+
+export const createCongeSchema = z.object({
+  employeId: z.string().min(1, "L'employé est requis"),
+  typeConge: z.nativeEnum(LeaveType),
+  dateDebut: z.string().min(1, "La date de début est requise"),
+  dateFin: z.string().min(1, "La date de fin est requise"),
+  nbJours: z.number().min(0.5, "Le nombre de jours doit être au moins 0.5"),
+  motif: z.string().optional().or(z.literal("")),
+});
+
+export const updateCongeStatutSchema = z.object({
+  statut: z.enum(["approuve", "rejete", "annule"]),
+  motifRefus: z.string().optional(),
+});
+
+export type CreateCongeInput = z.infer<typeof createCongeSchema>;
+export type UpdateCongeStatutInput = z.infer<typeof updateCongeStatutSchema>;
+
 export type CreatePeriodePaieInput = z.infer<typeof createPeriodePaieSchema>;
 export type CreateElementPaieInput = z.infer<typeof createElementPaieSchema>;
 export type BatchElementsPaieInput = z.infer<typeof batchElementsPaieSchema>;

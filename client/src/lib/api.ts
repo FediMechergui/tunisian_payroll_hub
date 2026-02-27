@@ -9,6 +9,7 @@ import type {
   PaginatedResponse,
   Employe,
   Utilisateur,
+  Conge,
   Entreprise,
   ParametreReglementaire,
   DashboardStats,
@@ -191,6 +192,68 @@ export const payrollApi = {
     api.get<ApiResponse<BulletinPaie[]>>(
       `/payroll/employes/${employeId}/bulletins`
     ),
+};
+
+// --- Congés API ---
+
+export const congesApi = {
+  list: () =>
+    api.get<
+      ApiResponse<
+        (Conge & {
+          employe?: {
+            nom: string;
+            prenom: string;
+            departement: string;
+            poste: string;
+          };
+        })[]
+      >
+    >("/conges"),
+
+  get: (id: string) =>
+    api.get<
+      ApiResponse<
+        Conge & {
+          employe?: {
+            nom: string;
+            prenom: string;
+            departement: string;
+            poste: string;
+          };
+        }
+      >
+    >(`/conges/${id}`),
+
+  create: (data: {
+    employeId: string;
+    typeConge: string;
+    dateDebut: string;
+    dateFin: string;
+    nbJours: number;
+    motif?: string;
+  }) => api.post<ApiResponse<Conge>>("/conges", data),
+
+  updateStatut: (
+    id: string,
+    statut: "approuve" | "rejete" | "annule",
+    motifRefus?: string
+  ) =>
+    api.put<ApiResponse<Conge>>(`/conges/${id}/statut`, { statut, motifRefus }),
+
+  cancel: (id: string) => api.put<ApiResponse<Conge>>(`/conges/${id}/annuler`),
+
+  delete: (id: string) => api.delete<ApiResponse>(`/conges/${id}`),
+
+  getBalance: (employeId: string, year?: number) =>
+    api.get<
+      ApiResponse<{
+        droitAnnuel: number;
+        consomme: number;
+        enAttente: number;
+        solde: number;
+      }>
+    >(`/conges/balance/${employeId}`, { params: year ? { year } : {} }),
 };
 
 export default api;

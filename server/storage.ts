@@ -20,6 +20,7 @@ import type {
 import {
   UserRole,
   ContractType,
+  LeaveType,
   MaritalStatus,
   SectorType,
   WorkRegime,
@@ -502,9 +503,105 @@ class Storage {
       },
     ];
 
+    const employeeIds: string[] = [];
     for (const emp of sampleEmployees) {
       const id = uuidv4();
       this.employes.set(id, { id, ...emp, createdAt: now, updatedAt: now });
+      employeeIds.push(id);
+    }
+
+    // 6. Create employee self-service user (linked to first employee: Bouazizi)
+    const empUserId = uuidv4();
+    const empUserHash = await bcrypt.hash("Employe2025!", 10);
+    this.utilisateurs.set(empUserId, {
+      id: empUserId,
+      email: "bouazizi@payrollhub.tn",
+      nom: "Bouazizi",
+      prenom: "Mohamed",
+      role: UserRole.EMPLOYE,
+      entrepriseId,
+      employeId: employeeIds[0],
+      actif: true,
+      motDePasseHash: empUserHash,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // 7. Create manager user (linked to fifth employee: Chaabane - Directeur Commercial)
+    const mgrUserId = uuidv4();
+    const mgrHash = await bcrypt.hash("Manager2025!", 10);
+    this.utilisateurs.set(mgrUserId, {
+      id: mgrUserId,
+      email: "chaabane@payrollhub.tn",
+      nom: "Chaabane",
+      prenom: "Khalil",
+      role: UserRole.MANAGER,
+      entrepriseId,
+      employeId: employeeIds[4],
+      actif: true,
+      motDePasseHash: mgrHash,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // 8. Seed sample leave requests
+    const leaveSeeds: Omit<Conge, "id" | "createdAt" | "updatedAt">[] = [
+      {
+        employeId: employeeIds[0], // Bouazizi
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-03-10",
+        dateFin: "2026-03-14",
+        nbJours: 5,
+        statut: LeaveStatus.EN_ATTENTE,
+        motif: "Vacances familiales",
+      },
+      {
+        employeId: employeeIds[1], // Trabelsi
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-02-17",
+        dateFin: "2026-02-21",
+        nbJours: 5,
+        statut: LeaveStatus.APPROUVE,
+        motif: "Congé annuel",
+        approuvePar: rhId,
+        dateApprobation: "2026-02-10T09:00:00.000Z",
+      },
+      {
+        employeId: employeeIds[2], // Jebali
+        typeConge: LeaveType.MALADIE,
+        dateDebut: "2026-02-24",
+        dateFin: "2026-02-26",
+        nbJours: 3,
+        statut: LeaveStatus.EN_ATTENTE,
+        motif: "Certificat médical fourni",
+      },
+      {
+        employeId: employeeIds[0], // Bouazizi
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-01-06",
+        dateFin: "2026-01-08",
+        nbJours: 3,
+        statut: LeaveStatus.APPROUVE,
+        motif: "Déménagement",
+        approuvePar: rhId,
+        dateApprobation: "2025-12-28T14:00:00.000Z",
+      },
+      {
+        employeId: employeeIds[3], // Hamdi
+        typeConge: LeaveType.EXCEPTIONNEL,
+        dateDebut: "2026-03-01",
+        dateFin: "2026-03-01",
+        nbJours: 1,
+        statut: LeaveStatus.REJETE,
+        motif: "Rendez-vous administratif",
+        approuvePar: rhId,
+        dateApprobation: "2026-02-26T11:00:00.000Z",
+      },
+    ];
+
+    for (const leave of leaveSeeds) {
+      const id = uuidv4();
+      this.conges.set(id, { id, ...leave, createdAt: now, updatedAt: now });
     }
   }
 
@@ -811,7 +908,106 @@ class Storage {
   getConges(employeId?: string): Conge[] {
     let c = Array.from(this.conges.values());
     if (employeId) c = c.filter(x => x.employeId === employeId);
+    return c.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getCongesByEntreprise(entrepriseId: string): Conge[] {
+    const empIds = new Set(this.getEmployes(entrepriseId).map(e => e.id));
+    return Array.from(this.conges.values())
+      .filter(c => empIds.has(c.employeId))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getConge(id: string): Conge | undefined {
+    return this.conges.get(id);
+  }
+
+  createConge(
+    data: Omit<Conge, "id" | "statut" | "createdAt" | "updatedAt">
+  ): Conge {
+    const now = new Date().toISOString();
+    const c: Conge = {
+      id: uuidv4(),
+      ...data,
+      statut: LeaveStatus.EN_ATTENTE,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.conges.set(c.id, c);
     return c;
+  }
+
+  updateCongeStatut(
+    id: string,
+    statut: LeaveStatus,
+    approuvePar?: string
+  ): Conge | undefined {
+    const c = this.conges.get(id);
+    if (!c) return undefined;
+    const now = new Date().toISOString();
+    const updated: Conge = {
+      ...c,
+      statut,
+      approuvePar:
+        statut === LeaveStatus.APPROUVE || statut === LeaveStatus.REJETE
+          ? approuvePar
+          : c.approuvePar,
+      dateApprobation:
+        statut === LeaveStatus.APPROUVE || statut === LeaveStatus.REJETE
+          ? now
+          : c.dateApprobation,
+      updatedAt: now,
+    };
+    this.conges.set(id, updated);
+    return updated;
+  }
+
+  deleteConge(id: string): boolean {
+    return this.conges.delete(id);
+  }
+
+  /**
+   * Compute leave balance for an employee for a given year.
+   * Statutory entitlement per Tunisian law:
+   *  - Congé payé: 12 days/year (or from parameter CONGE_PAYE_JOURS_AN)
+   * Returns { droitAnnuel, consomme, enAttente, solde }
+   */
+  getLeaveBalance(
+    employeId: string,
+    year: number
+  ): {
+    droitAnnuel: number;
+    consomme: number;
+    enAttente: number;
+    solde: number;
+  } {
+    // Get statutory entitlement from params
+    const param = Array.from(this.parametres.values()).find(
+      p => p.nom === "CONGE_PAYE_JOURS_AN"
+    );
+    const droitAnnuel = param ? parseFloat(param.valeur) : 12;
+
+    const leaves = Array.from(this.conges.values()).filter(
+      c =>
+        c.employeId === employeId &&
+        c.typeConge === "conge_paye" &&
+        new Date(c.dateDebut).getFullYear() === year
+    );
+
+    const consomme = leaves
+      .filter(c => c.statut === LeaveStatus.APPROUVE)
+      .reduce((s, c) => s + c.nbJours, 0);
+
+    const enAttente = leaves
+      .filter(c => c.statut === LeaveStatus.EN_ATTENTE)
+      .reduce((s, c) => s + c.nbJours, 0);
+
+    return {
+      droitAnnuel,
+      consomme,
+      enAttente,
+      solde: droitAnnuel - consomme,
+    };
   }
 
   // --- Dashboard Stats ---

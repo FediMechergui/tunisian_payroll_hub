@@ -26,6 +26,7 @@ import {
   ChevronLeft,
   Building2,
   Bell,
+  CircleUser,
 } from "lucide-react";
 
 interface NavItem {
@@ -58,8 +59,11 @@ const navItems: NavItem[] = [
     label: "Congés",
     href: "/app/conges",
     icon: <CalendarDays size={20} />,
-    disabled: true,
-    disabledLabel: "Phase 3",
+  },
+  {
+    label: "Mon Espace",
+    href: "/app/mon-espace",
+    icon: <CircleUser size={20} />,
   },
   {
     label: "Documents",

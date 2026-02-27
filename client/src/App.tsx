@@ -16,6 +16,8 @@ import Settings from "./pages/app/Settings";
 import UsersPage from "./pages/app/Users";
 import PayrollPeriods from "./pages/app/PayrollPeriods";
 import PayrollPeriodDetail from "./pages/app/PayrollPeriodDetail";
+import Leaves from "./pages/app/Leaves";
+import SelfService from "./pages/app/SelfService";
 import { Loader2 } from "lucide-react";
 
 // Protected route wrapper — redirects to login if not authenticated
@@ -100,6 +102,20 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <PayrollPeriods />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/conges">
+        {() => (
+          <ProtectedRoute>
+            <Leaves />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/mon-espace">
+        {() => (
+          <ProtectedRoute>
+            <SelfService />
           </ProtectedRoute>
         )}
       </Route>
