@@ -69,15 +69,25 @@ const navItems: NavItem[] = [
     label: "Documents",
     href: "/app/documents",
     icon: <FileText size={20} />,
-    disabled: true,
-    disabledLabel: "Phase 4",
+    minRole: UserRole.MANAGER,
+  },
+  {
+    label: "Déclarations",
+    href: "/app/declarations",
+    icon: <FileText size={20} />,
+    minRole: UserRole.ADMIN_PAIE,
   },
   {
     label: "Rapports",
     href: "/app/rapports",
     icon: <BarChart3 size={20} />,
-    disabled: true,
-    disabledLabel: "Phase 4",
+    minRole: UserRole.COMPTABLE,
+  },
+  {
+    label: "Analytique",
+    href: "/app/analytique",
+    icon: <BarChart3 size={20} />,
+    minRole: UserRole.MANAGER,
   },
 ];
 

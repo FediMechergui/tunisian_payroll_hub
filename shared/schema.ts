@@ -6,10 +6,13 @@
 import { z } from "zod";
 import {
   ContractType,
+  DeclarationType,
+  DocumentType,
   LeaveType,
   MaritalStatus,
   PayElementType,
   PayPeriodStatus,
+  ReportType,
   SectorType,
   UserRole,
   WorkRegime,
@@ -154,3 +157,31 @@ export type UpdateCongeStatutInput = z.infer<typeof updateCongeStatutSchema>;
 export type CreatePeriodePaieInput = z.infer<typeof createPeriodePaieSchema>;
 export type CreateElementPaieInput = z.infer<typeof createElementPaieSchema>;
 export type BatchElementsPaieInput = z.infer<typeof batchElementsPaieSchema>;
+
+// --- Phase 4: Documents, Declarations, Reports ---
+
+export const generateDocumentSchema = z.object({
+  employeId: z.string().min(1, "L'employé est requis"),
+  typeDocument: z.nativeEnum(DocumentType),
+  annee: z.number().min(2020).max(2100).optional(),
+});
+
+export const generateDeclarationSchema = z.object({
+  type: z.nativeEnum(DeclarationType),
+  trimestre: z.number().min(1).max(4).optional(),
+  annee: z.number().min(2020).max(2100),
+  periodeDebut: z.string().min(1, "La date de début est requise"),
+  periodeFin: z.string().min(1, "La date de fin est requise"),
+});
+
+export const generateReportSchema = z.object({
+  type: z.nativeEnum(ReportType),
+  titre: z.string().min(1, "Le titre est requis"),
+  periodeDebut: z.string().min(1, "La date de début est requise"),
+  periodeFin: z.string().min(1, "La date de fin est requise"),
+  filtres: z.record(z.string(), z.string()).optional(),
+});
+
+export type GenerateDocumentInput = z.infer<typeof generateDocumentSchema>;
+export type GenerateDeclarationInput = z.infer<typeof generateDeclarationSchema>;
+export type GenerateReportInput = z.infer<typeof generateReportSchema>;

@@ -83,6 +83,35 @@ export enum WorkRegime {
   REGIME_40H = "40h",
 }
 
+export enum DocumentType {
+  ATTESTATION_TRAVAIL = "attestation_travail",
+  ATTESTATION_SALAIRE = "attestation_salaire",
+  ATTESTATION_CNSS = "attestation_cnss",
+  FICHE_PAIE_ANNUELLE = "fiche_paie_annuelle",
+  CERTIFICAT_TRAVAIL = "certificat_travail",
+}
+
+export enum DeclarationType {
+  CNSS_D17 = "cnss_d17",
+  DGI_DEU = "dgi_deu",
+  VIREMENT_BANCAIRE = "virement_bancaire",
+}
+
+export enum DeclarationStatus {
+  BROUILLON = "brouillon",
+  GENERE = "genere",
+  SOUMIS = "soumis",
+}
+
+export enum ReportType {
+  MASSE_SALARIALE = "masse_salariale",
+  EFFECTIFS = "effectifs",
+  CHARGES_SOCIALES = "charges_sociales",
+  CONGES = "conges",
+  COUT_DEPARTEMENT = "cout_departement",
+  PERSONNALISE = "personnalise",
+}
+
 // --- Entity Interfaces ---
 
 export interface Entreprise {
@@ -188,10 +217,41 @@ export interface Conge {
 export interface DocumentRH {
   id: string;
   employeId: string;
-  typeDocument: string;
+  typeDocument: DocumentType;
   nomFichier: string;
-  urlStockage: string;
+  titre: string;
   dateCreation: string;
+  generePar: string;
+  entrepriseId: string;
+}
+
+export interface Declaration {
+  id: string;
+  entrepriseId: string;
+  type: DeclarationType;
+  periodeDebut: string;
+  periodeFin: string;
+  trimestre?: number;
+  annee: number;
+  statut: DeclarationStatus;
+  nomFichier: string;
+  nbEmployes: number;
+  montantTotal: number;
+  generePar: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportConfig {
+  id: string;
+  entrepriseId: string;
+  type: ReportType;
+  titre: string;
+  periodeDebut: string;
+  periodeFin: string;
+  filtres?: Record<string, string>;
+  generePar: string;
+  createdAt: string;
 }
 
 export interface ParametreReglementaire {
@@ -303,6 +363,16 @@ export interface DashboardStats {
       net: number;
       coutEmployeur: number;
     }[];
+  };
+  // Phase 4 — Advanced analytics
+  analytics?: {
+    turnover: { mois: string; entrees: number; sorties: number }[];
+    absenteisme: { departement: string; taux: number }[];
+    coutParDepartement: { departement: string; brut: number; charges: number; total: number }[];
+    repartitionSalaires: { tranche: string; count: number }[];
+    ancienneteDistribution: { tranche: string; count: number }[];
+    documentsGeneres: number;
+    declarationsEnAttente: number;
   };
 }
 

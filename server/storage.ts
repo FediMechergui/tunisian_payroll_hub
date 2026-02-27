@@ -14,6 +14,8 @@ import type {
   BulletinPaie,
   Conge,
   DocumentRH,
+  Declaration,
+  ReportConfig,
   ParametreReglementaire,
   DashboardStats,
 } from "../shared/types";
@@ -26,6 +28,7 @@ import {
   WorkRegime,
   PayPeriodStatus,
   LeaveStatus,
+  DeclarationStatus,
 } from "../shared/types";
 
 // Internal user type with password hash
@@ -41,6 +44,8 @@ class Storage {
   private elementsPaie = new Map<string, ElementPaie>();
   private conges = new Map<string, Conge>();
   private documents = new Map<string, DocumentRH>();
+  private declarations = new Map<string, Declaration>();
+  private reports = new Map<string, ReportConfig>();
   private parametres = new Map<string, ParametreReglementaire>();
   private bulletins = new Map<string, BulletinPaie>();
 
@@ -1010,6 +1015,98 @@ class Storage {
     };
   }
 
+  // --- Documents RH ---
+  getDocuments(entrepriseId: string): DocumentRH[] {
+    return Array.from(this.documents.values())
+      .filter(d => d.entrepriseId === entrepriseId)
+      .sort((a, b) => b.dateCreation.localeCompare(a.dateCreation));
+  }
+
+  getDocumentsByEmploye(employeId: string): DocumentRH[] {
+    return Array.from(this.documents.values())
+      .filter(d => d.employeId === employeId)
+      .sort((a, b) => b.dateCreation.localeCompare(a.dateCreation));
+  }
+
+  getDocument(id: string): DocumentRH | undefined {
+    return this.documents.get(id);
+  }
+
+  createDocument(data: Omit<DocumentRH, "id" | "dateCreation">): DocumentRH {
+    const d: DocumentRH = {
+      id: uuidv4(),
+      ...data,
+      dateCreation: new Date().toISOString(),
+    };
+    this.documents.set(d.id, d);
+    return d;
+  }
+
+  deleteDocument(id: string): boolean {
+    return this.documents.delete(id);
+  }
+
+  // --- Declarations ---
+  getDeclarations(entrepriseId: string): Declaration[] {
+    return Array.from(this.declarations.values())
+      .filter(d => d.entrepriseId === entrepriseId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getDeclaration(id: string): Declaration | undefined {
+    return this.declarations.get(id);
+  }
+
+  createDeclaration(data: Omit<Declaration, "id" | "statut" | "createdAt" | "updatedAt">): Declaration {
+    const now = new Date().toISOString();
+    const d: Declaration = {
+      id: uuidv4(),
+      ...data,
+      statut: DeclarationStatus.GENERE,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.declarations.set(d.id, d);
+    return d;
+  }
+
+  updateDeclarationStatut(id: string, statut: DeclarationStatus): Declaration | undefined {
+    const d = this.declarations.get(id);
+    if (!d) return undefined;
+    d.statut = statut;
+    d.updatedAt = new Date().toISOString();
+    return d;
+  }
+
+  deleteDeclaration(id: string): boolean {
+    return this.declarations.delete(id);
+  }
+
+  // --- Reports ---
+  getReports(entrepriseId: string): ReportConfig[] {
+    return Array.from(this.reports.values())
+      .filter(r => r.entrepriseId === entrepriseId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  getReport(id: string): ReportConfig | undefined {
+    return this.reports.get(id);
+  }
+
+  createReport(data: Omit<ReportConfig, "id" | "createdAt">): ReportConfig {
+    const r: ReportConfig = {
+      id: uuidv4(),
+      ...data,
+      createdAt: new Date().toISOString(),
+    };
+    this.reports.set(r.id, r);
+    return r;
+  }
+
+  deleteReport(id: string): boolean {
+    return this.reports.delete(id);
+  }
+
   // --- Dashboard Stats ---
   getDashboardStats(entrepriseId: string): DashboardStats {
     const emps = this.getEmployes(entrepriseId);
@@ -1134,6 +1231,91 @@ class Storage {
       };
     }
 
+    // Phase 4 — Advanced analytics
+    // Turnover (entries/exits) — simulated from hire/end dates
+    const turnoverMonths = months.map((mois: string, idx: number) => {
+      const entrees = emps.filter(e => {
+        const d = new Date(e.dateEmbauche);
+        return d.getMonth() === idx && d.getFullYear() === new Date().getFullYear();
+      }).length;
+      const sorties = emps.filter(e => {
+        if (!e.dateFin) return false;
+        const d = new Date(e.dateFin);
+        return d.getMonth() === idx && d.getFullYear() === new Date().getFullYear();
+      }).length;
+      return { mois, entrees, sorties };
+    }).slice(0, currentMonth + 1);
+
+    // Absenteeism by department
+    const deptLeaves = new Map<string, { total: number; jours: number }>();
+    for (const e of emps) {
+      if (!deptLeaves.has(e.departement)) {
+        deptLeaves.set(e.departement, { total: 0, jours: 0 });
+      }
+      const dl = deptLeaves.get(e.departement)!;
+      dl.total++;
+      const empLeaves = Array.from(this.conges.values())
+        .filter(c => c.employeId === e.id && (c.statut === LeaveStatus.APPROUVE));
+      dl.jours += empLeaves.reduce((s, c) => s + c.nbJours, 0);
+    }
+    const absenteisme = Array.from(deptLeaves.entries()).map(([departement, d]) => ({
+      departement,
+      taux: d.total > 0 ? Math.round((d.jours / (d.total * 22) * 100) * 10) / 10 : 0,
+    }));
+
+    // Cost per department
+    const coutParDepartement = Array.from(deptMap.entries()).map(([departement]) => {
+      const deptEmps = emps.filter(e => e.departement === departement);
+      const brut = deptEmps.reduce((s, e) => s + e.salaireBase, 0);
+      const charges = brut * 0.2807; // ~28.07% employer charges (CNSS + FOPROLOS + TFP)
+      return { departement, brut, charges, total: brut + charges };
+    });
+
+    // Salary distribution
+    const salairesTranches = [
+      { min: 0, max: 500, label: "< 500" },
+      { min: 500, max: 1000, label: "500-1000" },
+      { min: 1000, max: 2000, label: "1000-2000" },
+      { min: 2000, max: 3000, label: "2000-3000" },
+      { min: 3000, max: 5000, label: "3000-5000" },
+      { min: 5000, max: Infinity, label: "> 5000" },
+    ];
+    const repartitionSalaires = salairesTranches.map(t => ({
+      tranche: t.label,
+      count: emps.filter(e => e.salaireBase >= t.min && e.salaireBase < t.max).length,
+    }));
+
+    // Seniority distribution
+    const now2 = new Date();
+    const anciennete = [
+      { min: 0, max: 1, label: "< 1 an" },
+      { min: 1, max: 3, label: "1-3 ans" },
+      { min: 3, max: 5, label: "3-5 ans" },
+      { min: 5, max: 10, label: "5-10 ans" },
+      { min: 10, max: Infinity, label: "> 10 ans" },
+    ];
+    const ancienneteDistribution = anciennete.map(t => ({
+      tranche: t.label,
+      count: emps.filter(e => {
+        const years = (now2.getTime() - new Date(e.dateEmbauche).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+        return years >= t.min && years < t.max;
+      }).length,
+    }));
+
+    const documentsGeneres = this.getDocuments(entrepriseId).length;
+    const declarationsEnAttente = this.getDeclarations(entrepriseId)
+      .filter(d => d.statut === DeclarationStatus.GENERE).length;
+
+    const analytics: DashboardStats["analytics"] = {
+      turnover: turnoverMonths,
+      absenteisme,
+      coutParDepartement,
+      repartitionSalaires,
+      ancienneteDistribution,
+      documentsGeneres,
+      declarationsEnAttente,
+    };
+
     return {
       totalEmployes: emps.length,
       contratsActifs,
@@ -1143,6 +1325,7 @@ class Storage {
       employesParContrat,
       evolutionMasseSalariale,
       payroll,
+      analytics,
     };
   }
 }

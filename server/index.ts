@@ -17,6 +17,9 @@ import { parametresRouter } from "./routes/parametres";
 import { dashboardRouter } from "./routes/dashboard";
 import { payrollRouter } from "./routes/payroll";
 import { congesRouter } from "./routes/conges";
+import { documentsRouter } from "./routes/documents";
+import { declarationsRouter } from "./routes/declarations";
+import { reportsRouter } from "./routes/reports";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,6 +47,9 @@ async function startServer() {
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/payroll", payrollRouter);
   app.use("/api/conges", congesRouter);
+  app.use("/api/documents", documentsRouter);
+  app.use("/api/declarations", declarationsRouter);
+  app.use("/api/reports", reportsRouter);
 
   // Serve static files from dist/public in production
   const staticPath =

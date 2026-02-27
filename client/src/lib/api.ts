@@ -18,6 +18,9 @@ import type {
   PeriodePaie,
   BulletinPaie,
   ElementPaie,
+  DocumentRH,
+  Declaration,
+  ReportConfig,
 } from "@shared/types";
 
 const api = axios.create({
@@ -254,6 +257,75 @@ export const congesApi = {
         solde: number;
       }>
     >(`/conges/balance/${employeId}`, { params: year ? { year } : {} }),
+};
+
+// --- Documents API ---
+
+export const documentsApi = {
+  list: () =>
+    api.get<ApiResponse<(DocumentRH & { employe?: { nom: string; prenom: string; departement: string } })[]>>(
+      "/documents"
+    ),
+
+  listByEmploye: (employeId: string) =>
+    api.get<ApiResponse<DocumentRH[]>>(`/documents/employe/${employeId}`),
+
+  generate: (data: { employeId: string; typeDocument: string; annee?: number }) =>
+    api.post("/documents/generate", data, { responseType: "blob" }),
+
+  download: (id: string) =>
+    api.get(`/documents/${id}/download`, { responseType: "blob" }),
+
+  delete: (id: string) => api.delete<ApiResponse>(`/documents/${id}`),
+};
+
+// --- Declarations API ---
+
+export const declarationsApi = {
+  list: () => api.get<ApiResponse<Declaration[]>>("/declarations"),
+
+  generate: (data: {
+    type: string;
+    trimestre?: number;
+    annee: number;
+    periodeDebut: string;
+    periodeFin: string;
+  }) => api.post("/declarations/generate", data, { responseType: "blob" }),
+
+  download: (id: string) =>
+    api.get(`/declarations/${id}/download`, { responseType: "blob" }),
+
+  downloadCsv: (id: string) =>
+    api.get(`/declarations/${id}/csv`, { responseType: "blob" }),
+
+  updateStatut: (id: string, statut: string) =>
+    api.put<ApiResponse<Declaration>>(`/declarations/${id}/statut`, { statut }),
+
+  delete: (id: string) => api.delete<ApiResponse>(`/declarations/${id}`),
+};
+
+// --- Reports API ---
+
+export const reportsApi = {
+  list: () => api.get<ApiResponse<ReportConfig[]>>("/reports"),
+
+  generate: (
+    data: {
+      type: string;
+      titre: string;
+      periodeDebut: string;
+      periodeFin: string;
+      filtres?: { departement?: string };
+    },
+    format: "pdf" | "csv" = "pdf"
+  ) =>
+    api.post(`/reports/generate?format=${format}`, data, {
+      responseType: "blob",
+    }),
+
+  get: (id: string) => api.get<ApiResponse<ReportConfig>>(`/reports/${id}`),
+
+  delete: (id: string) => api.delete<ApiResponse>(`/reports/${id}`),
 };
 
 export default api;
