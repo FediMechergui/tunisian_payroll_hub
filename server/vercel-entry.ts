@@ -1,6 +1,7 @@
 // ============================================================================
 // PayrollHub — Vercel Serverless Function Entry Point
 // Wraps the Express app for Vercel's serverless runtime
+// This file is bundled by esbuild into api/index.mjs during build
 // ============================================================================
 
 import dotenv from "dotenv";
@@ -9,24 +10,24 @@ dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import { connectDB } from "../server/db";
-import { storage } from "../server/storage";
-import { authRouter } from "../server/auth";
-import { employeesRouter } from "../server/routes/employees";
-import { usersRouter } from "../server/routes/users";
-import { entreprisesRouter } from "../server/routes/entreprises";
-import { parametresRouter } from "../server/routes/parametres";
-import { dashboardRouter } from "../server/routes/dashboard";
-import { payrollRouter } from "../server/routes/payroll";
-import { congesRouter } from "../server/routes/conges";
-import { documentsRouter } from "../server/routes/documents";
-import { declarationsRouter } from "../server/routes/declarations";
-import { reportsRouter } from "../server/routes/reports";
-import { notificationsRouter } from "../server/routes/notifications";
-import { apiKeysRouter } from "../server/routes/api-keys";
-import { externalApiRouter } from "../server/routes/external-api";
-import { superExternalRouter } from "../server/routes/super-external";
-import { documentRequestsRouter } from "../server/routes/document-requests";
+import { connectDB } from "./db";
+import { storage } from "./storage";
+import { authRouter } from "./auth";
+import { employeesRouter } from "./routes/employees";
+import { usersRouter } from "./routes/users";
+import { entreprisesRouter } from "./routes/entreprises";
+import { parametresRouter } from "./routes/parametres";
+import { dashboardRouter } from "./routes/dashboard";
+import { payrollRouter } from "./routes/payroll";
+import { congesRouter } from "./routes/conges";
+import { documentsRouter } from "./routes/documents";
+import { declarationsRouter } from "./routes/declarations";
+import { reportsRouter } from "./routes/reports";
+import { notificationsRouter } from "./routes/notifications";
+import { apiKeysRouter } from "./routes/api-keys";
+import { externalApiRouter } from "./routes/external-api";
+import { superExternalRouter } from "./routes/super-external";
+import { documentRequestsRouter } from "./routes/document-requests";
 
 const app = express();
 

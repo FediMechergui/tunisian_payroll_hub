@@ -1,10 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "buildCommand": "vite build",
+  "buildCommand": "pnpm run build:vercel",
+  "installCommand": "pnpm install",
   "outputDirectory": "dist/public",
   "framework": null,
-  "installCommand": "pnpm install",
+  "functions": {
+    "api/index.mjs": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
