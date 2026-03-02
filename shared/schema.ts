@@ -12,6 +12,7 @@ import {
   MaritalStatus,
   PayElementType,
   PayPeriodStatus,
+  PlanType,
   ReportType,
   SectorType,
   UserRole,
@@ -27,6 +28,27 @@ export const loginSchema = z.object({
     .string()
     .min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
+
+export const signupSchema = z.object({
+  // Admin info
+  adminNom: z.string().min(2, "Le nom est requis"),
+  adminPrenom: z.string().min(2, "Le prénom est requis"),
+  adminEmail: z.string().email("Adresse email invalide"),
+  adminPassword: z
+    .string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  // Company info
+  companyName: z.string().min(2, "Le nom de l'entreprise est requis"),
+  matriculeFiscal: z.string().min(5, "Le matricule fiscal est requis"),
+  codeCnss: z.string().min(5, "Le code CNSS est requis"),
+  adresse: z.string().min(5, "L'adresse est requise"),
+  secteurActivite: z.nativeEnum(SectorType),
+  regimeTravail: z.nativeEnum(WorkRegime),
+  telephone: z.string().optional().or(z.literal("")),
+  plan: z.nativeEnum(PlanType),
+});
+
+export type SignupInput = z.infer<typeof signupSchema>;
 
 // --- Utilisateur ---
 
@@ -56,6 +78,7 @@ export const createEntrepriseSchema = z.object({
     .optional()
     .or(z.literal("")),
   regimeTravail: z.nativeEnum(WorkRegime),
+  plan: z.nativeEnum(PlanType).optional(),
 });
 
 // --- Employé ---
@@ -184,15 +207,62 @@ export const generateReportSchema = z.object({
 });
 
 export type GenerateDocumentInput = z.infer<typeof generateDocumentSchema>;
-export type GenerateDeclarationInput = z.infer<typeof generateDeclarationSchema>;
+export type GenerateDeclarationInput = z.infer<
+  typeof generateDeclarationSchema
+>;
 export type GenerateReportInput = z.infer<typeof generateReportSchema>;
 
 // --- Phase 5: API Keys ---
 
 export const createApiKeySchema = z.object({
   nom: z.string().min(2, "Le nom est requis"),
-  permissions: z.array(z.nativeEnum(ApiPermission)).min(1, "Au moins une permission requise"),
+  permissions: z
+    .array(z.nativeEnum(ApiPermission))
+    .min(1, "Au moins une permission requise"),
   limiteRequetes: z.number().min(10).max(10000).default(1000),
 });
 
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+
+// --- Super External Admin: Company + Admin Creation ---
+
+export const createCompanyWithAdminSchema = z.object({
+  companyName: z.string().min(2, "Le nom de l'entreprise est requis"),
+  adresse: z.string().min(5, "L'adresse est requise"),
+  matriculeFiscal: z.string().min(5, "Le matricule fiscal est requis"),
+  codeCnss: z.string().min(5, "Le code CNSS est requis"),
+  secteurActivite: z.nativeEnum(SectorType),
+  telephone: z.string().optional(),
+  companyEmail: z.string().email().optional().or(z.literal("")),
+  regimeTravail: z.nativeEnum(WorkRegime),
+  plan: z.nativeEnum(PlanType),
+  adminEmail: z.string().email("Email admin invalide"),
+  adminPassword: z
+    .string()
+    .min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  adminNom: z.string().min(2, "Le nom est requis"),
+  adminPrenom: z.string().min(2, "Le prénom est requis"),
+});
+
+export type CreateCompanyWithAdminInput = z.infer<
+  typeof createCompanyWithAdminSchema
+>;
+
+// --- Document Requests ---
+
+export const createDocumentRequestSchema = z.object({
+  typeDocument: z.nativeEnum(DocumentType),
+  motif: z.string().optional().or(z.literal("")),
+});
+
+export const reviewDocumentRequestSchema = z.object({
+  statut: z.enum(["approuve", "rejete"]),
+  reviewComment: z.string().optional().or(z.literal("")),
+});
+
+export type CreateDocumentRequestInput = z.infer<
+  typeof createDocumentRequestSchema
+>;
+export type ReviewDocumentRequestInput = z.infer<
+  typeof reviewDocumentRequestSchema
+>;

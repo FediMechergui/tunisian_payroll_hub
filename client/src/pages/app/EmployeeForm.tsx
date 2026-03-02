@@ -8,9 +8,15 @@ import { useLocation, useRoute } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createEmployeSchema, type CreateEmployeInput } from "@shared/schema";
-import { ContractType, MaritalStatus } from "@shared/types";
-import { DEPARTEMENTS, CATEGORIES_PRO, BANQUES_TN } from "@shared/const";
+import { ContractType, MaritalStatus, UserRole } from "@shared/types";
+import {
+  DEPARTEMENTS,
+  CATEGORIES_PRO,
+  BANQUES_TN,
+  ROLE_HIERARCHY,
+} from "@shared/const";
 import { employeesApi } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,19 +28,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, ArrowRight, Check, Loader2, User, Briefcase, CreditCard } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Loader2,
+  User,
+  Briefcase,
+  CreditCard,
+  KeyRound,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import { toast } from "sonner";
 
 const STEPS = [
   { id: 0, label: "Informations Personnelles", icon: <User size={18} /> },
   { id: 1, label: "Emploi", icon: <Briefcase size={18} /> },
   { id: 2, label: "Financier", icon: <CreditCard size={18} /> },
+  { id: 3, label: "Compte", icon: <KeyRound size={18} /> },
 ];
 
+const ROLE_LABELS: Record<string, string> = {
+  [UserRole.EMPLOYE]: "Employ\u00e9",
+  [UserRole.MANAGER]: "Manager",
+  [UserRole.COMPTABLE]: "Comptable",
+  [UserRole.ADMIN_PAIE]: "Admin Paie",
+  [UserRole.ADMIN_RH]: "Admin RH",
+};
+
 export default function EmployeeForm() {
+  const { user: currentUser } = useAuth();
   const [step, setStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingEmployee, setLoadingEmployee] = useState(false);
   const [, setLocation] = useLocation();
+  const [showAccountPwd, setShowAccountPwd] = useState(false);
+
+  // Account creation state (outside react-hook-form)
+  const [createAccount, setCreateAccount] = useState(false);
+  const [accountEmail, setAccountEmail] = useState("");
+  const [accountPassword, setAccountPassword] = useState("");
+  const [accountRole, setAccountRole] = useState<string>(UserRole.EMPLOYE);
 
   // Detect edit mode from route
   const [isEditRoute, editParams] = useRoute("/app/employes/:id/modifier");
@@ -65,7 +100,7 @@ export default function EmployeeForm() {
       setLoadingEmployee(true);
       employeesApi
         .get(employeeId)
-        .then((res) => {
+        .then(res => {
           if (res.data.success && res.data.data) {
             const emp = res.data.data;
             reset({
@@ -109,34 +144,86 @@ export default function EmployeeForm() {
   };
 
   const step0Fields: (keyof CreateEmployeInput)[] = [
-    "nom", "prenom", "cin", "dateNaissance", "adresse", "telephone", "email",
-    "situationFamiliale", "nbEnfants", "residenceFiscale",
+    "nom",
+    "prenom",
+    "cin",
+    "dateNaissance",
+    "adresse",
+    "telephone",
+    "email",
+    "situationFamiliale",
+    "nbEnfants",
+    "residenceFiscale",
   ];
   const step1Fields: (keyof CreateEmployeInput)[] = [
-    "matriculeCnss", "dateEmbauche", "typeContrat", "categoriePro", "poste",
-    "departement", "etablissement",
+    "matriculeCnss",
+    "dateEmbauche",
+    "typeContrat",
+    "categoriePro",
+    "poste",
+    "departement",
+    "etablissement",
   ];
   const step2Fields: (keyof CreateEmployeInput)[] = [
-    "salaireBase", "iban", "banque",
+    "salaireBase",
+    "iban",
+    "banque",
   ];
 
+  // Compute which roles the current user can assign (below their own level)
+  const assignableRoles = Object.entries(ROLE_LABELS).filter(([role]) => {
+    const callerLevel =
+      ROLE_HIERARCHY[currentUser?.role as keyof typeof ROLE_HIERARCHY] || 0;
+    const targetLevel =
+      ROLE_HIERARCHY[role as keyof typeof ROLE_HIERARCHY] || 0;
+    return targetLevel < callerLevel;
+  });
+
   const goNext = async () => {
-    const fields = step === 0 ? step0Fields : step === 1 ? step1Fields : step2Fields;
-    const valid = await trigger(fields);
-    if (valid) setStep((s) => Math.min(s + 1, 2));
+    const fields =
+      step === 0 ? step0Fields : step === 1 ? step1Fields : step2Fields;
+    if (step <= 2) {
+      const valid = await trigger(fields);
+      if (valid) setStep(s => Math.min(s + 1, 3));
+    } else {
+      setStep(s => Math.min(s + 1, 3));
+    }
   };
 
   const onSubmit = async (data: CreateEmployeInput) => {
     setIsSubmitting(true);
     try {
+      const payload: any = { ...data };
+
+      // Attach account creation fields if enabled (only for new employees)
+      if (!isEdit && createAccount && accountEmail && accountPassword) {
+        payload.createAccount = true;
+        payload.accountEmail = accountEmail;
+        payload.accountPassword = accountPassword;
+        payload.accountRole = accountRole;
+      }
+
       const res = isEdit
         ? await employeesApi.update(employeeId!, data)
-        : await employeesApi.create(data);
+        : await employeesApi.create(payload);
       if (res.data.success) {
+        if ((res.data as any).accountCreated) {
+          toast.success(
+            `Employ\u00e9 cr\u00e9\u00e9 avec un compte ${(res.data as any).accountRole} (${(res.data as any).accountEmail})`
+          );
+        } else if ((res.data as any).warning) {
+          toast.warning((res.data as any).warning);
+        }
         setLocation(isEdit ? `/app/employes/${employeeId}` : "/app/employes");
       }
     } catch (err: any) {
-      console.error(isEdit ? "Update employee error:" : "Create employee error:", err);
+      console.error(
+        isEdit ? "Update employee error:" : "Create employee error:",
+        err
+      );
+      toast.error(
+        err.response?.data?.error || "Erreur lors de l'op\u00e9ration"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -145,7 +232,9 @@ export default function EmployeeForm() {
   const FieldError = ({ name }: { name: keyof CreateEmployeInput }) => {
     const error = errors[name];
     if (!error) return null;
-    return <p className="text-red-500 text-xs mt-1">{error.message as string}</p>;
+    return (
+      <p className="text-red-500 text-xs mt-1">{error.message as string}</p>
+    );
   };
 
   if (loadingEmployee) {
@@ -161,13 +250,28 @@ export default function EmployeeForm() {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="text-slate-500" onClick={() => setLocation(isEdit ? `/app/employes/${employeeId}` : "/app/employes")}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-slate-500"
+          onClick={() =>
+            setLocation(
+              isEdit ? `/app/employes/${employeeId}` : "/app/employes"
+            )
+          }
+        >
           <ArrowLeft size={18} className="mr-1" />
           Retour
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">{isEdit ? "Modifier l'Employé" : "Nouvel Employé"}</h1>
-          <p className="text-slate-500 text-sm">{isEdit ? "Modifiez les informations de l'employé" : "Remplissez les informations pour créer un nouveau profil"}</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {isEdit ? "Modifier l'Employé" : "Nouvel Employé"}
+          </h1>
+          <p className="text-slate-500 text-sm">
+            {isEdit
+              ? "Modifiez les informations de l'employé"
+              : "Remplissez les informations pour créer un nouveau profil"}
+          </p>
         </div>
       </div>
 
@@ -181,19 +285,27 @@ export default function EmployeeForm() {
                 i === step
                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                   : i < step
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer"
-                  : "bg-slate-50 text-slate-400 border border-slate-100"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-pointer"
+                    : "bg-slate-50 text-slate-400 border border-slate-100"
               }`}
             >
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                i === step ? "bg-blue-600 text-white" : i < step ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-500"
-              }`}>
+              <span
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                  i === step
+                    ? "bg-blue-600 text-white"
+                    : i < step
+                      ? "bg-emerald-500 text-white"
+                      : "bg-slate-200 text-slate-500"
+                }`}
+              >
                 {i < step ? <Check size={14} /> : i + 1}
               </span>
               <span className="hidden sm:inline truncate">{s.label}</span>
             </button>
             {i < STEPS.length - 1 && (
-              <div className={`w-6 h-0.5 flex-shrink-0 ${i < step ? "bg-emerald-300" : "bg-slate-200"}`} />
+              <div
+                className={`w-6 h-0.5 flex-shrink-0 ${i < step ? "bg-emerald-300" : "bg-slate-200"}`}
+              />
             )}
           </div>
         ))}
@@ -214,40 +326,79 @@ export default function EmployeeForm() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="prenom">Prénom *</Label>
-                  <Input id="prenom" {...register("prenom")} className="mt-1" placeholder="Prénom" />
+                  <Input
+                    id="prenom"
+                    {...register("prenom")}
+                    className="mt-1"
+                    placeholder="Prénom"
+                  />
                   <FieldError name="prenom" />
                 </div>
                 <div>
                   <Label htmlFor="nom">Nom *</Label>
-                  <Input id="nom" {...register("nom")} className="mt-1" placeholder="Nom de famille" />
+                  <Input
+                    id="nom"
+                    {...register("nom")}
+                    className="mt-1"
+                    placeholder="Nom de famille"
+                  />
                   <FieldError name="nom" />
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="cin">CIN (Carte d'Identité Nationale) *</Label>
-                  <Input id="cin" {...register("cin")} className="mt-1" placeholder="12345678" maxLength={8} />
+                  <Label htmlFor="cin">
+                    CIN (Carte d'Identité Nationale) *
+                  </Label>
+                  <Input
+                    id="cin"
+                    {...register("cin")}
+                    className="mt-1"
+                    placeholder="12345678"
+                    maxLength={8}
+                  />
                   <FieldError name="cin" />
                 </div>
                 <div>
                   <Label htmlFor="dateNaissance">Date de Naissance *</Label>
-                  <Input id="dateNaissance" type="date" {...register("dateNaissance")} className="mt-1" />
+                  <Input
+                    id="dateNaissance"
+                    type="date"
+                    {...register("dateNaissance")}
+                    className="mt-1"
+                  />
                   <FieldError name="dateNaissance" />
                 </div>
               </div>
               <div>
                 <Label htmlFor="adresse">Adresse *</Label>
-                <Input id="adresse" {...register("adresse")} className="mt-1" placeholder="Adresse complète" />
+                <Input
+                  id="adresse"
+                  {...register("adresse")}
+                  className="mt-1"
+                  placeholder="Adresse complète"
+                />
                 <FieldError name="adresse" />
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="telephone">Téléphone</Label>
-                  <Input id="telephone" {...register("telephone")} className="mt-1" placeholder="+216 XX XXX XXX" />
+                  <Input
+                    id="telephone"
+                    {...register("telephone")}
+                    className="mt-1"
+                    placeholder="+216 XX XXX XXX"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" {...register("email")} className="mt-1" placeholder="prenom.nom@email.tn" />
+                  <Input
+                    id="email"
+                    type="email"
+                    {...register("email")}
+                    className="mt-1"
+                    placeholder="prenom.nom@email.tn"
+                  />
                   <FieldError name="email" />
                 </div>
               </div>
@@ -256,24 +407,42 @@ export default function EmployeeForm() {
                   <Label>Situation Familiale *</Label>
                   <Select
                     value={watch("situationFamiliale")}
-                    onValueChange={(v) => setValue("situationFamiliale", v as MaritalStatus)}
+                    onValueChange={v =>
+                      setValue("situationFamiliale", v as MaritalStatus)
+                    }
                   >
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       {Object.entries(maritalLabels).map(([value, label]) => (
-                        <SelectItem key={value} value={value}>{label}</SelectItem>
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label htmlFor="nbEnfants">Enfants à Charge</Label>
-                  <Input id="nbEnfants" type="number" min={0} max={20} {...register("nbEnfants", { valueAsNumber: true })} className="mt-1" />
+                  <Input
+                    id="nbEnfants"
+                    type="number"
+                    min={0}
+                    max={20}
+                    {...register("nbEnfants", { valueAsNumber: true })}
+                    className="mt-1"
+                  />
                   <FieldError name="nbEnfants" />
                 </div>
                 <div>
                   <Label htmlFor="residenceFiscale">Résidence Fiscale *</Label>
-                  <Input id="residenceFiscale" {...register("residenceFiscale")} className="mt-1" placeholder="Tunis" />
+                  <Input
+                    id="residenceFiscale"
+                    {...register("residenceFiscale")}
+                    className="mt-1"
+                    placeholder="Tunis"
+                  />
                   <FieldError name="residenceFiscale" />
                 </div>
               </div>
@@ -294,12 +463,22 @@ export default function EmployeeForm() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="matriculeCnss">Matricule CNSS *</Label>
-                  <Input id="matriculeCnss" {...register("matriculeCnss")} className="mt-1" placeholder="CNS00XXXX" />
+                  <Input
+                    id="matriculeCnss"
+                    {...register("matriculeCnss")}
+                    className="mt-1"
+                    placeholder="CNS00XXXX"
+                  />
                   <FieldError name="matriculeCnss" />
                 </div>
                 <div>
                   <Label htmlFor="dateEmbauche">Date d'Embauche *</Label>
-                  <Input id="dateEmbauche" type="date" {...register("dateEmbauche")} className="mt-1" />
+                  <Input
+                    id="dateEmbauche"
+                    type="date"
+                    {...register("dateEmbauche")}
+                    className="mt-1"
+                  />
                   <FieldError name="dateEmbauche" />
                 </div>
               </div>
@@ -308,12 +487,18 @@ export default function EmployeeForm() {
                   <Label>Type de Contrat *</Label>
                   <Select
                     value={watch("typeContrat")}
-                    onValueChange={(v) => setValue("typeContrat", v as ContractType)}
+                    onValueChange={v =>
+                      setValue("typeContrat", v as ContractType)
+                    }
                   >
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
-                      {Object.values(ContractType).map((ct) => (
-                        <SelectItem key={ct} value={ct}>{ct}</SelectItem>
+                      {Object.values(ContractType).map(ct => (
+                        <SelectItem key={ct} value={ct}>
+                          {ct}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -322,12 +507,16 @@ export default function EmployeeForm() {
                   <Label>Catégorie Professionnelle *</Label>
                   <Select
                     value={watch("categoriePro")}
-                    onValueChange={(v) => setValue("categoriePro", v)}
+                    onValueChange={v => setValue("categoriePro", v)}
                   >
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES_PRO.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      {CATEGORIES_PRO.map(cat => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -337,19 +526,28 @@ export default function EmployeeForm() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="poste">Poste *</Label>
-                  <Input id="poste" {...register("poste")} className="mt-1" placeholder="Intitulé du poste" />
+                  <Input
+                    id="poste"
+                    {...register("poste")}
+                    className="mt-1"
+                    placeholder="Intitulé du poste"
+                  />
                   <FieldError name="poste" />
                 </div>
                 <div>
                   <Label>Département *</Label>
                   <Select
                     value={watch("departement")}
-                    onValueChange={(v) => setValue("departement", v)}
+                    onValueChange={v => setValue("departement", v)}
                   >
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner" /></SelectTrigger>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Sélectionner" />
+                    </SelectTrigger>
                     <SelectContent>
-                      {DEPARTEMENTS.map((dep) => (
-                        <SelectItem key={dep} value={dep}>{dep}</SelectItem>
+                      {DEPARTEMENTS.map(dep => (
+                        <SelectItem key={dep} value={dep}>
+                          {dep}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -358,7 +556,12 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <Label htmlFor="etablissement">Établissement</Label>
-                <Input id="etablissement" {...register("etablissement")} className="mt-1" placeholder="Nom de l'établissement (optionnel)" />
+                <Input
+                  id="etablissement"
+                  {...register("etablissement")}
+                  className="mt-1"
+                  placeholder="Nom de l'établissement (optionnel)"
+                />
               </div>
             </CardContent>
           </Card>
@@ -375,8 +578,18 @@ export default function EmployeeForm() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="salaireBase">Salaire de Base (TND/mois) *</Label>
-                <Input id="salaireBase" type="number" step="0.001" min={0} {...register("salaireBase", { valueAsNumber: true })} className="mt-1" placeholder="1200.000" />
+                <Label htmlFor="salaireBase">
+                  Salaire de Base (TND/mois) *
+                </Label>
+                <Input
+                  id="salaireBase"
+                  type="number"
+                  step="0.001"
+                  min={0}
+                  {...register("salaireBase", { valueAsNumber: true })}
+                  className="mt-1"
+                  placeholder="1200.000"
+                />
                 <FieldError name="salaireBase" />
                 <p className="text-xs text-slate-400 mt-1">
                   SMIG 2025 : 528,320 TND (48h) / 448,238 TND (40h)
@@ -384,23 +597,156 @@ export default function EmployeeForm() {
               </div>
               <div>
                 <Label htmlFor="iban">IBAN *</Label>
-                <Input id="iban" {...register("iban")} className="mt-1 font-mono" placeholder="TN59 XXXX XXXX XXXX XXXX XXXX" />
+                <Input
+                  id="iban"
+                  {...register("iban")}
+                  className="mt-1 font-mono"
+                  placeholder="TN59 XXXX XXXX XXXX XXXX XXXX"
+                />
                 <FieldError name="iban" />
               </div>
               <div>
                 <Label>Banque</Label>
                 <Select
                   value={watch("banque") || ""}
-                  onValueChange={(v) => setValue("banque", v)}
+                  onValueChange={v => setValue("banque", v)}
                 >
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Sélectionner une banque" /></SelectTrigger>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Sélectionner une banque" />
+                  </SelectTrigger>
                   <SelectContent>
-                    {BANQUES_TN.map((b) => (
-                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    {BANQUES_TN.map(b => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 3: User Account (only for create, not edit) */}
+        {step === 3 && !isEdit && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <KeyRound size={18} className="text-blue-600" />
+                Compte Utilisateur
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <input
+                  type="checkbox"
+                  id="createAccount"
+                  checked={createAccount}
+                  onChange={e => setCreateAccount(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <label
+                  htmlFor="createAccount"
+                  className="text-sm text-slate-700 cursor-pointer"
+                >
+                  <span className="font-medium">
+                    Créer un compte utilisateur
+                  </span>
+                  <br />
+                  <span className="text-xs text-slate-500">
+                    L'employé pourra se connecter à PayrollHub avec ses
+                    identifiants
+                  </span>
+                </label>
+              </div>
+
+              {createAccount && (
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <Label htmlFor="accountEmail">Email du compte *</Label>
+                    <Input
+                      id="accountEmail"
+                      type="email"
+                      value={accountEmail}
+                      onChange={e => setAccountEmail(e.target.value)}
+                      placeholder="employe@entreprise.tn"
+                      className="mt-1"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Cet email servira d'identifiant de connexion
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="accountPassword">Mot de passe *</Label>
+                    <div className="relative">
+                      <Input
+                        id="accountPassword"
+                        type={showAccountPwd ? "text" : "password"}
+                        value={accountPassword}
+                        onChange={e => setAccountPassword(e.target.value)}
+                        placeholder="Min. 8 caractères"
+                        className="mt-1 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAccountPwd(!showAccountPwd)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showAccountPwd ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
+                      </button>
+                    </div>
+                    {accountPassword.length > 0 &&
+                      accountPassword.length < 8 && (
+                        <p className="text-amber-500 text-xs mt-1">
+                          Min. 8 caractères
+                        </p>
+                      )}
+                  </div>
+                  <div>
+                    <Label>Niveau d'accès *</Label>
+                    <Select value={accountRole} onValueChange={setAccountRole}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignableRoles.map(([role, label]) => (
+                          <SelectItem key={role} value={role}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Seuls les rôles inférieurs au vôtre sont disponibles
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Step 3 in edit mode — just show info */}
+        {step === 3 && isEdit && (
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <KeyRound size={18} className="text-blue-600" />
+                Compte Utilisateur
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-slate-500">
+                La gestion des comptes utilisateurs se fait depuis la page{" "}
+                <a href="/app/utilisateurs" className="text-blue-600 underline">
+                  Utilisateurs
+                </a>
+                .
+              </p>
             </CardContent>
           </Card>
         )}
@@ -410,22 +756,31 @@ export default function EmployeeForm() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => step > 0 ? setStep(s => s - 1) : setLocation("/app/employes")}
+            onClick={() =>
+              step > 0 ? setStep(s => s - 1) : setLocation("/app/employes")
+            }
             className="gap-1"
           >
             <ArrowLeft size={16} />
             {step > 0 ? "Précédent" : "Annuler"}
           </Button>
 
-          {step < 2 ? (
-            <Button type="button" onClick={goNext} className="bg-blue-600 hover:bg-blue-700 text-white gap-1">
+          {step < 3 ? (
+            <Button
+              type="button"
+              onClick={goNext}
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
+            >
               Suivant
               <ArrowRight size={16} />
             </Button>
           ) : (
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={
+                isSubmitting ||
+                (createAccount && (!accountEmail || accountPassword.length < 8))
+              }
               className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white gap-1"
             >
               {isSubmitting ? (

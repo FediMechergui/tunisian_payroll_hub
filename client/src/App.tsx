@@ -7,6 +7,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import AppLayout from "./components/app/AppLayout";
 import Dashboard from "./pages/app/Dashboard";
 import Employees from "./pages/app/Employees";
@@ -24,6 +25,8 @@ import Reports from "./pages/app/Reports";
 import Analytics from "./pages/app/Analytics";
 import Notifications from "./pages/app/Notifications";
 import ApiKeys from "./pages/app/ApiKeys";
+import PlatformDashboard from "./pages/app/PlatformDashboard";
+import DocumentRequests from "./pages/app/DocumentRequests";
 import { Loader2 } from "lucide-react";
 
 // Protected route wrapper — redirects to login if not authenticated
@@ -60,6 +63,7 @@ function Router() {
 
       {/* Authentication */}
       <Route path="/login" component={Login} />
+      <Route path="/signup" component={Signup} />
 
       {/* App Routes (Protected) */}
       <Route path="/app">
@@ -178,6 +182,20 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <ApiKeys />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/plateforme">
+        {() => (
+          <ProtectedRoute>
+            <PlatformDashboard />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/demandes-documents">
+        {() => (
+          <ProtectedRoute>
+            <DocumentRequests />
           </ProtectedRoute>
         )}
       </Route>

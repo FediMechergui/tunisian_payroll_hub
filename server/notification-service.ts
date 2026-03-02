@@ -12,8 +12,14 @@ import {
 
 export const notificationService = {
   // Leave requested — notify managers & RH
-  onLeaveRequested(entrepriseId: string, employeNom: string, typeConge: string, dateDebut: string, dateFin: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.MANAGER, {
+  async onLeaveRequested(
+    entrepriseId: string,
+    employeNom: string,
+    typeConge: string,
+    dateDebut: string,
+    dateFin: string
+  ) {
+    await storage.broadcastNotification(entrepriseId, UserRole.MANAGER, {
       type: NotificationType.CONGE_DEMANDE,
       priorite: NotificationPriority.MEDIUM,
       titre: "Nouvelle demande de congé",
@@ -23,17 +29,20 @@ export const notificationService = {
   },
 
   // Leave approved/rejected — notify the employee
-  onLeaveDecision(
+  async onLeaveDecision(
     entrepriseId: string,
     employeUserId: string | undefined,
     statut: "approuve" | "rejete",
     typeConge: string
   ) {
     if (!employeUserId) return;
-    const type = statut === "approuve" ? NotificationType.CONGE_APPROUVE : NotificationType.CONGE_REJETE;
+    const type =
+      statut === "approuve"
+        ? NotificationType.CONGE_APPROUVE
+        : NotificationType.CONGE_REJETE;
     const statusLabel = statut === "approuve" ? "approuvé" : "rejeté";
 
-    storage.createNotification({
+    await storage.createNotification({
       entrepriseId,
       destinataireId: employeUserId,
       type,
@@ -45,8 +54,8 @@ export const notificationService = {
   },
 
   // Payroll calculated — notify RH & admin paie
-  onPayrollCalculated(entrepriseId: string, periodeLabel: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.ADMIN_PAIE, {
+  async onPayrollCalculated(entrepriseId: string, periodeLabel: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.ADMIN_PAIE, {
       type: NotificationType.PAIE_CALCULEE,
       priorite: NotificationPriority.MEDIUM,
       titre: "Paie calculée",
@@ -56,8 +65,8 @@ export const notificationService = {
   },
 
   // Payroll validated — notify comptable+
-  onPayrollValidated(entrepriseId: string, periodeLabel: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.COMPTABLE, {
+  async onPayrollValidated(entrepriseId: string, periodeLabel: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.COMPTABLE, {
       type: NotificationType.PAIE_VALIDEE,
       priorite: NotificationPriority.HIGH,
       titre: "Paie validée",
@@ -67,8 +76,8 @@ export const notificationService = {
   },
 
   // Payroll finalized — notify all employees
-  onPayrollFinalized(entrepriseId: string, periodeLabel: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.EMPLOYE, {
+  async onPayrollFinalized(entrepriseId: string, periodeLabel: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.EMPLOYE, {
       type: NotificationType.PAIE_FINALISEE,
       priorite: NotificationPriority.HIGH,
       titre: "Bulletins de paie disponibles",
@@ -78,9 +87,13 @@ export const notificationService = {
   },
 
   // Document generated — notify the employee
-  onDocumentGenerated(entrepriseId: string, employeUserId: string | undefined, docType: string) {
+  async onDocumentGenerated(
+    entrepriseId: string,
+    employeUserId: string | undefined,
+    docType: string
+  ) {
     if (!employeUserId) return;
-    storage.createNotification({
+    await storage.createNotification({
       entrepriseId,
       destinataireId: employeUserId,
       type: NotificationType.DOCUMENT_GENERE,
@@ -92,8 +105,8 @@ export const notificationService = {
   },
 
   // Declaration generated — notify admin_paie+
-  onDeclarationGenerated(entrepriseId: string, declType: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.ADMIN_PAIE, {
+  async onDeclarationGenerated(entrepriseId: string, declType: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.ADMIN_PAIE, {
       type: NotificationType.DECLARATION_GENEREE,
       priorite: NotificationPriority.MEDIUM,
       titre: "Déclaration générée",
@@ -103,8 +116,8 @@ export const notificationService = {
   },
 
   // Employee created — notify RH
-  onEmployeeCreated(entrepriseId: string, employeNom: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
+  async onEmployeeCreated(entrepriseId: string, employeNom: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
       type: NotificationType.EMPLOYE_CREE,
       priorite: NotificationPriority.LOW,
       titre: "Nouvel employé",
@@ -114,8 +127,12 @@ export const notificationService = {
   },
 
   // Contract expiry alert (scheduled)
-  onContractExpiring(entrepriseId: string, employeNom: string, dateFin: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
+  async onContractExpiring(
+    entrepriseId: string,
+    employeNom: string,
+    dateFin: string
+  ) {
+    await storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
       type: NotificationType.CONTRAT_EXPIRATION,
       priorite: NotificationPriority.URGENT,
       titre: "Contrat en expiration",
@@ -125,8 +142,8 @@ export const notificationService = {
   },
 
   // System alert
-  systemAlert(entrepriseId: string, message: string) {
-    storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
+  async systemAlert(entrepriseId: string, message: string) {
+    await storage.broadcastNotification(entrepriseId, UserRole.ADMIN_RH, {
       type: NotificationType.ALERTE_SYSTEME,
       priorite: NotificationPriority.HIGH,
       titre: "Alerte système",

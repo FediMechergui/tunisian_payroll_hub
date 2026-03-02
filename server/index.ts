@@ -1,7 +1,10 @@
 // ============================================================================
 // PayrollHub — Server Entry Point
-// Express server with API routes + SPA static serving
+// Express server with API routes + SPA static serving + MongoDB
 // ============================================================================
+
+import dotenv from "dotenv";
+dotenv.config();
 
 import express from "express";
 import { createServer } from "http";
@@ -9,6 +12,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { connectDB } from "./db";
+import { storage } from "./storage";
 import { authRouter } from "./auth";
 import { employeesRouter } from "./routes/employees";
 import { usersRouter } from "./routes/users";
@@ -23,11 +28,17 @@ import { reportsRouter } from "./routes/reports";
 import { notificationsRouter } from "./routes/notifications";
 import { apiKeysRouter } from "./routes/api-keys";
 import { externalApiRouter } from "./routes/external-api";
+import { superExternalRouter } from "./routes/super-external";
+import { documentRequestsRouter } from "./routes/document-requests";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function startServer() {
+  // Connect to MongoDB
+  await connectDB();
+  await storage.seed();
+
   const app = express();
   const server = createServer(app);
 
@@ -40,6 +51,9 @@ async function startServer() {
       credentials: true,
     })
   );
+
+  // Serve uploaded files (authenticated)
+  app.use("/uploads", express.static(path.resolve("uploads")));
 
   // API Routes
   app.use("/api/auth", authRouter);
@@ -56,6 +70,8 @@ async function startServer() {
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/api-keys", apiKeysRouter);
   app.use("/api/v1", externalApiRouter);
+  app.use("/api/super-external", superExternalRouter);
+  app.use("/api/document-requests", documentRequestsRouter);
 
   // Serve static files from dist/public in production
   const staticPath =

@@ -33,10 +33,10 @@ interface PayrollParams {
   tfpServices: number;           // 1%
 }
 
-function loadParams(): PayrollParams {
-  const params = storage.getParametres();
+async function loadParams(): Promise<PayrollParams> {
+  const params = await storage.getParametres();
   const get = (nom: string): number => {
-    const p = params.find((x) => x.nom === nom);
+    const p = params.find((x: any) => x.nom === nom);
     return p ? parseFloat(p.valeur) : 0;
   };
 
@@ -44,13 +44,13 @@ function loadParams(): PayrollParams {
     cnssEmployeTotal: get("CNSS_SAL_TOTAL"),
     cnssPatronalTotal: get("CNSS_PAT_TOTAL"),
     irppBrackets: [
-      { min: 0,     max: 5000,   rate: get("IRPP_TRANCHE_1") },
-      { min: 5000,  max: 10000,  rate: get("IRPP_TRANCHE_2") },
-      { min: 10000, max: 20000,  rate: get("IRPP_TRANCHE_3") },
-      { min: 20000, max: 30000,  rate: get("IRPP_TRANCHE_4") },
-      { min: 30000, max: 40000,  rate: get("IRPP_TRANCHE_5") },
-      { min: 40000, max: 50000,  rate: get("IRPP_TRANCHE_6") },
-      { min: 50000, max: 70000,  rate: get("IRPP_TRANCHE_7") },
+      { min: 0, max: 5000, rate: get("IRPP_TRANCHE_1") },
+      { min: 5000, max: 10000, rate: get("IRPP_TRANCHE_2") },
+      { min: 10000, max: 20000, rate: get("IRPP_TRANCHE_3") },
+      { min: 20000, max: 30000, rate: get("IRPP_TRANCHE_4") },
+      { min: 30000, max: 40000, rate: get("IRPP_TRANCHE_5") },
+      { min: 40000, max: 50000, rate: get("IRPP_TRANCHE_6") },
+      { min: 50000, max: 70000, rate: get("IRPP_TRANCHE_7") },
       { min: 70000, max: Infinity, rate: get("IRPP_TRANCHE_8") },
     ],
     fraisProTaux: get("IRPP_FRAIS_PRO_TAUX"),
@@ -65,16 +65,18 @@ function loadParams(): PayrollParams {
 
 // --- IRPP Progressive Tax Calculation ---
 
-function calculateIRPPAnnual(revenuAnnuelImposable: number, brackets: PayrollParams["irppBrackets"]): number {
+function calculateIRPPAnnual(
+  revenuAnnuelImposable: number,
+  brackets: PayrollParams["irppBrackets"]
+): number {
   if (revenuAnnuelImposable <= 0) return 0;
 
   let totalTax = 0;
   let remaining = revenuAnnuelImposable;
 
   for (const bracket of brackets) {
-    const bracketSize = bracket.max === Infinity
-      ? remaining
-      : bracket.max - bracket.min;
+    const bracketSize =
+      bracket.max === Infinity ? remaining : bracket.max - bracket.min;
 
     const taxable = Math.min(remaining, bracketSize);
     if (taxable <= 0) break;
@@ -107,13 +109,13 @@ export interface PayrollCalculationResult {
   };
 }
 
-export function calculatePayroll(
+export async function calculatePayroll(
   employe: Employe,
   entreprise: Entreprise,
   periodePaieId: string,
-  variableElements: Omit<ElementPaie, "id" | "periodePaieId">[],
-): PayrollCalculationResult {
-  const p = loadParams();
+  variableElements: Omit<ElementPaie, "id" | "periodePaieId">[]
+): Promise<PayrollCalculationResult> {
+  const p = await loadParams();
   const now = new Date().toISOString();
 
   // -----------------------------------------------------------------------
@@ -144,19 +146,20 @@ export function calculatePayroll(
   // -----------------------------------------------------------------------
   // 2. Salaire Brut
   // -----------------------------------------------------------------------
-  const gains = elements.filter((e) =>
-    ![
-      PayElementType.ACOMPTE,
-      PayElementType.SAISIE_SALAIRE,
-      PayElementType.CNSS_SALARIAL,
-      PayElementType.CNSS_PATRONAL,
-      PayElementType.IRPP,
-      PayElementType.FOPROLOS,
-      PayElementType.TFP,
-    ].includes(e.type)
+  const gains = elements.filter(
+    e =>
+      ![
+        PayElementType.ACOMPTE,
+        PayElementType.SAISIE_SALAIRE,
+        PayElementType.CNSS_SALARIAL,
+        PayElementType.CNSS_PATRONAL,
+        PayElementType.IRPP,
+        PayElementType.FOPROLOS,
+        PayElementType.TFP,
+      ].includes(e.type)
   );
 
-  const deductionsFromBrut = elements.filter((e) =>
+  const deductionsFromBrut = elements.filter(e =>
     [PayElementType.ACOMPTE, PayElementType.SAISIE_SALAIRE].includes(e.type)
   );
 
@@ -212,9 +215,14 @@ export function calculatePayroll(
   }
   deductionsFamiliales += employe.nbEnfants * p.deductionEnfant;
 
-  const revenuAnnuelImposable = Math.max(0, revenuAnnuelNet - fraisPro - deductionsFamiliales);
+  const revenuAnnuelImposable = Math.max(
+    0,
+    revenuAnnuelNet - fraisPro - deductionsFamiliales
+  );
 
-  const irppAnnuel = round(calculateIRPPAnnual(revenuAnnuelImposable, p.irppBrackets));
+  const irppAnnuel = round(
+    calculateIRPPAnnual(revenuAnnuelImposable, p.irppBrackets)
+  );
   const irppMensuel = round(irppAnnuel / 12);
 
   elements.push({
@@ -231,9 +239,10 @@ export function calculatePayroll(
   // 5. Employer charges: FOPROLOS + TFP
   // -----------------------------------------------------------------------
   const foprolos = round(salaireBrut * (p.foprolosTaux / 100));
-  const tfpRate = entreprise.secteurActivite === SectorType.INDUSTRIE
-    ? p.tfpIndustrie
-    : p.tfpServices;
+  const tfpRate =
+    entreprise.secteurActivite === SectorType.INDUSTRIE
+      ? p.tfpIndustrie
+      : p.tfpServices;
   const tfp = round(salaireBrut * (tfpRate / 100));
 
   elements.push({
@@ -308,31 +317,36 @@ export function calculatePayroll(
 
 // --- Run payroll for all active employees in a period ---
 
-export function runPayrollForPeriod(
+export async function runPayrollForPeriod(
   periodePaieId: string,
-  entrepriseId: string,
-): BulletinPaie[] {
-  const entreprise = storage.getEntreprise(entrepriseId);
+  entrepriseId: string
+): Promise<BulletinPaie[]> {
+  const entreprise = await storage.getEntreprise(entrepriseId);
   if (!entreprise) throw new Error("Entreprise introuvable");
 
-  const employes = storage.getEmployes(entrepriseId).filter((e) => e.actif);
+  const allEmployes = await storage.getEmployes(entrepriseId);
+  const employes = allEmployes.filter((e: any) => e.actif);
   const bulletins: BulletinPaie[] = [];
 
   for (const emp of employes) {
     // Get variable elements entered for this period + employee
-    const variableElements = storage
-      .getElementsPaie(periodePaieId, emp.id)
-      .map((el) => ({
-        employeId: el.employeId,
-        type: el.type,
-        libelle: el.libelle,
-        montant: el.montant,
-        estVariable: el.estVariable,
-        heures: el.heures,
-        taux: el.taux,
-      }));
+    const rawElements = await storage.getElementsPaie(periodePaieId, emp.id);
+    const variableElements = rawElements.map((el: any) => ({
+      employeId: el.employeId,
+      type: el.type,
+      libelle: el.libelle,
+      montant: el.montant,
+      estVariable: el.estVariable,
+      heures: el.heures,
+      taux: el.taux,
+    }));
 
-    const result = calculatePayroll(emp, entreprise, periodePaieId, variableElements);
+    const result = await calculatePayroll(
+      emp,
+      entreprise,
+      periodePaieId,
+      variableElements
+    );
     bulletins.push(result.bulletin);
   }
 

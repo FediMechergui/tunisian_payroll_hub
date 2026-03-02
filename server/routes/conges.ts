@@ -20,7 +20,7 @@ congesRouter.use(requireAuth);
 // =============================================
 
 // GET /api/conges — List all leaves for the company (HR/admin) or own leaves (employee)
-congesRouter.get("/", (req: Request, res: Response) => {
+congesRouter.get("/", async (req: Request, res: Response) => {
   const userLevel =
     ROLE_HIERARCHY[req.user!.role as keyof typeof ROLE_HIERARCHY] || 0;
   const managerLevel =
@@ -29,26 +29,32 @@ congesRouter.get("/", (req: Request, res: Response) => {
   let conges;
   if (userLevel >= managerLevel) {
     // Managers+ see all leaves in company
-    conges = storage.getCongesByEntreprise(req.user!.entrepriseId);
+    conges = await storage.getCongesByEntreprise(req.user!.entrepriseId);
   } else {
     // Employees see only their own
-    const user = storage.getUtilisateur(req.user!.id);
+    const user = await storage.getUtilisateur(req.user!.id);
     if (!user?.employeId) {
       return res.json({ success: true, data: [] });
     }
-    conges = storage.getConges(user.employeId);
+    conges = await storage.getConges(user.employeId);
   }
 
   // Enrich with employee names
-  const enriched = conges.map((c) => {
-    const emp = storage.getEmploye(c.employeId);
-    return {
+  const enriched = [];
+  for (const c of conges) {
+    const emp = await storage.getEmploye(c.employeId);
+    enriched.push({
       ...c,
       employe: emp
-        ? { nom: emp.nom, prenom: emp.prenom, departement: emp.departement, poste: emp.poste }
+        ? {
+            nom: emp.nom,
+            prenom: emp.prenom,
+            departement: emp.departement,
+            poste: emp.poste,
+          }
         : undefined,
-    };
-  });
+    });
+  }
 
   return res.json({ success: true, data: enriched });
 });
@@ -58,19 +64,24 @@ congesRouter.get("/", (req: Request, res: Response) => {
 // =============================================
 
 // GET /api/conges/:id
-congesRouter.get("/:id", (req: Request, res: Response) => {
-  const conge = storage.getConge(req.params.id);
+congesRouter.get("/:id", async (req: Request, res: Response) => {
+  const conge = await storage.getConge(req.params.id);
   if (!conge) {
     return res.status(404).json({ success: false, error: "Congé introuvable" });
   }
 
-  const emp = storage.getEmploye(conge.employeId);
+  const emp = await storage.getEmploye(conge.employeId);
   return res.json({
     success: true,
     data: {
       ...conge,
       employe: emp
-        ? { nom: emp.nom, prenom: emp.prenom, departement: emp.departement, poste: emp.poste }
+        ? {
+            nom: emp.nom,
+            prenom: emp.prenom,
+            departement: emp.departement,
+            poste: emp.poste,
+          }
         : undefined,
     },
   });
@@ -81,7 +92,7 @@ congesRouter.get("/:id", (req: Request, res: Response) => {
 // =============================================
 
 // POST /api/conges — Create a new leave request
-congesRouter.post("/", (req: Request, res: Response) => {
+congesRouter.post("/", async (req: Request, res: Response) => {
   const parsed = createCongeSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({
@@ -91,12 +102,15 @@ congesRouter.post("/", (req: Request, res: Response) => {
     });
   }
 
-  const { employeId, typeConge, dateDebut, dateFin, nbJours, motif } = parsed.data;
+  const { employeId, typeConge, dateDebut, dateFin, nbJours, motif } =
+    parsed.data;
 
   // Verify employee exists
-  const emp = storage.getEmploye(employeId);
+  const emp = await storage.getEmploye(employeId);
   if (!emp) {
-    return res.status(404).json({ success: false, error: "Employé introuvable" });
+    return res
+      .status(404)
+      .json({ success: false, error: "Employé introuvable" });
   }
 
   // Self-service: employees can only request for themselves
@@ -106,7 +120,7 @@ congesRouter.post("/", (req: Request, res: Response) => {
     ROLE_HIERARCHY[UserRole.MANAGER as keyof typeof ROLE_HIERARCHY] || 0;
 
   if (userLevel < managerLevel) {
-    const user = storage.getUtilisateur(req.user!.id);
+    const user = await storage.getUtilisateur(req.user!.id);
     if (user?.employeId !== employeId) {
       return res.status(403).json({
         success: false,
@@ -118,7 +132,7 @@ congesRouter.post("/", (req: Request, res: Response) => {
   // Check leave balance for congé payé
   if (typeConge === "conge_paye") {
     const year = new Date(dateDebut).getFullYear();
-    const balance = storage.getLeaveBalance(employeId, year);
+    const balance = await storage.getLeaveBalance(employeId, year);
     if (balance.solde - balance.enAttente < nbJours) {
       return res.status(400).json({
         success: false,
@@ -127,7 +141,7 @@ congesRouter.post("/", (req: Request, res: Response) => {
     }
   }
 
-  const conge = storage.createConge({
+  const conge = await storage.createConge({
     employeId,
     typeConge,
     dateDebut,
@@ -136,8 +150,8 @@ congesRouter.post("/", (req: Request, res: Response) => {
     motif: motif || undefined,
   });
 
-  storage.invalidateCache("dashboard");
-  notificationService.onLeaveRequested(
+  await storage.invalidateCache("dashboard");
+  await notificationService.onLeaveRequested(
     req.user!.entrepriseId,
     `${emp.prenom} ${emp.nom}`,
     typeConge,
@@ -156,7 +170,7 @@ congesRouter.post("/", (req: Request, res: Response) => {
 congesRouter.put(
   "/:id/statut",
   requireMinRole(UserRole.MANAGER),
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const parsed = updateCongeStatutSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -166,9 +180,11 @@ congesRouter.put(
       });
     }
 
-    const conge = storage.getConge(req.params.id);
+    const conge = await storage.getConge(req.params.id);
     if (!conge) {
-      return res.status(404).json({ success: false, error: "Congé introuvable" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Congé introuvable" });
     }
 
     // Can only change status from EN_ATTENTE
@@ -186,7 +202,7 @@ congesRouter.put(
           ? LeaveStatus.REJETE
           : LeaveStatus.ANNULE;
 
-    const updated = storage.updateCongeStatut(
+    const updated = await storage.updateCongeStatut(
       req.params.id,
       newStatut,
       req.user!.id
@@ -194,18 +210,18 @@ congesRouter.put(
 
     // Notify the employee
     if (parsed.data.statut === "approuve" || parsed.data.statut === "rejete") {
-      const emp = storage.getEmploye(conge.employeId);
+      const emp = await storage.getEmploye(conge.employeId);
       // Find the user linked to this employee
-      const users = storage.getUtilisateurs(req.user!.entrepriseId);
-      const empUser = users.find(u => u.employeId === conge.employeId);
-      notificationService.onLeaveDecision(
+      const users = await storage.getUtilisateurs(req.user!.entrepriseId);
+      const empUser = users.find((u: any) => u.employeId === conge.employeId);
+      await notificationService.onLeaveDecision(
         req.user!.entrepriseId,
         empUser?.id,
         parsed.data.statut as "approuve" | "rejete",
         conge.typeConge
       );
     }
-    storage.invalidateCache("dashboard");
+    await storage.invalidateCache("dashboard");
 
     return res.json({ success: true, data: updated });
   }
@@ -216,8 +232,8 @@ congesRouter.put(
 // =============================================
 
 // PUT /api/conges/:id/annuler — Cancel own pending leave
-congesRouter.put("/:id/annuler", (req: Request, res: Response) => {
-  const conge = storage.getConge(req.params.id);
+congesRouter.put("/:id/annuler", async (req: Request, res: Response) => {
+  const conge = await storage.getConge(req.params.id);
   if (!conge) {
     return res.status(404).json({ success: false, error: "Congé introuvable" });
   }
@@ -237,7 +253,7 @@ congesRouter.put("/:id/annuler", (req: Request, res: Response) => {
     ROLE_HIERARCHY[UserRole.MANAGER as keyof typeof ROLE_HIERARCHY] || 0;
 
   if (userLevel < managerLevel) {
-    const user = storage.getUtilisateur(req.user!.id);
+    const user = await storage.getUtilisateur(req.user!.id);
     if (user?.employeId !== conge.employeId) {
       return res.status(403).json({
         success: false,
@@ -246,7 +262,10 @@ congesRouter.put("/:id/annuler", (req: Request, res: Response) => {
     }
   }
 
-  const updated = storage.updateCongeStatut(req.params.id, LeaveStatus.ANNULE);
+  const updated = await storage.updateCongeStatut(
+    req.params.id,
+    LeaveStatus.ANNULE
+  );
   return res.json({ success: true, data: updated });
 });
 
@@ -255,25 +274,27 @@ congesRouter.put("/:id/annuler", (req: Request, res: Response) => {
 // =============================================
 
 // GET /api/conges/balance/:employeId — Get leave balance for an employee
-congesRouter.get("/balance/:employeId", (req: Request, res: Response) => {
-  const emp = storage.getEmploye(req.params.employeId);
+congesRouter.get("/balance/:employeId", async (req: Request, res: Response) => {
+  const emp = await storage.getEmploye(req.params.employeId);
   if (!emp) {
-    return res.status(404).json({ success: false, error: "Employé introuvable" });
+    return res
+      .status(404)
+      .json({ success: false, error: "Employé introuvable" });
   }
 
   const year = req.query.year
     ? parseInt(req.query.year as string, 10)
     : new Date().getFullYear();
 
-  const balance = storage.getLeaveBalance(req.params.employeId, year);
+  const balance = await storage.getLeaveBalance(req.params.employeId, year);
   return res.json({ success: true, data: balance });
 });
 
 // GET /api/conges/my-balance — Get current user's leave balance
 congesRouter.get("/my-balance", (_req: Request, res: Response) => {
-  // This route must be defined before /:id to avoid conflict
-  // but since Express matches in order, it's fine here as a named route
-  return res.status(400).json({ success: false, error: "Use /balance/:employeId" });
+  return res
+    .status(400)
+    .json({ success: false, error: "Use /balance/:employeId" });
 });
 
 // =============================================
@@ -284,13 +305,15 @@ congesRouter.get("/my-balance", (_req: Request, res: Response) => {
 congesRouter.delete(
   "/:id",
   requireMinRole(UserRole.ADMIN_RH),
-  (req: Request, res: Response) => {
-    const conge = storage.getConge(req.params.id);
+  async (req: Request, res: Response) => {
+    const conge = await storage.getConge(req.params.id);
     if (!conge) {
-      return res.status(404).json({ success: false, error: "Congé introuvable" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Congé introuvable" });
     }
 
-    storage.deleteConge(req.params.id);
+    await storage.deleteConge(req.params.id);
     return res.json({ success: true, message: "Congé supprimé" });
   }
 );

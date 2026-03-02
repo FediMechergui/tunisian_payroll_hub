@@ -14,8 +14,8 @@ usersRouter.use(requireAuth);
 usersRouter.use(requireRole(UserRole.SUPER_ADMIN));
 
 // GET /api/users
-usersRouter.get("/", (req: Request, res: Response) => {
-  const users = storage.getUtilisateurs(req.user!.entrepriseId);
+usersRouter.get("/", async (req: Request, res: Response) => {
+  const users = await storage.getUtilisateurs(req.user!.entrepriseId);
   return res.json({ success: true, data: users });
 });
 
@@ -31,7 +31,7 @@ usersRouter.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    const existing = storage.getUtilisateurByEmail(email);
+    const existing = await storage.getUtilisateurByEmail(email);
     if (existing) {
       return res.status(409).json({
         success: false,
@@ -40,7 +40,7 @@ usersRouter.post("/", async (req: Request, res: Response) => {
     }
 
     const motDePasseHash = await bcrypt.hash(motDePasse, 10);
-    const user = storage.createUtilisateur({
+    const user = await storage.createUtilisateur({
       email,
       motDePasseHash,
       nom,
@@ -61,26 +61,30 @@ usersRouter.post("/", async (req: Request, res: Response) => {
 });
 
 // PUT /api/users/:id
-usersRouter.put("/:id", (req: Request, res: Response) => {
-  const user = storage.updateUtilisateur(req.params.id, req.body);
+usersRouter.put("/:id", async (req: Request, res: Response) => {
+  const user = await storage.updateUtilisateur(req.params.id, req.body);
   if (!user) {
-    return res.status(404).json({ success: false, error: "Utilisateur non trouvé" });
+    return res
+      .status(404)
+      .json({ success: false, error: "Utilisateur non trouvé" });
   }
   const { motDePasseHash: _, ...userData } = user;
   return res.json({ success: true, data: userData });
 });
 
 // DELETE /api/users/:id
-usersRouter.delete("/:id", (req: Request, res: Response) => {
+usersRouter.delete("/:id", async (req: Request, res: Response) => {
   if (req.params.id === req.user!.id) {
     return res.status(400).json({
       success: false,
       error: "Vous ne pouvez pas supprimer votre propre compte",
     });
   }
-  const success = storage.deleteUtilisateur(req.params.id);
+  const success = await storage.deleteUtilisateur(req.params.id);
   if (!success) {
-    return res.status(404).json({ success: false, error: "Utilisateur non trouvé" });
+    return res
+      .status(404)
+      .json({ success: false, error: "Utilisateur non trouvé" });
   }
   return res.json({ success: true, message: "Utilisateur désactivé" });
 });

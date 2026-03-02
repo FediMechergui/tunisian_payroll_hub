@@ -12,16 +12,18 @@ export const entreprisesRouter = Router();
 entreprisesRouter.use(requireAuth);
 
 // GET /api/entreprises
-entreprisesRouter.get("/", (req: Request, res: Response) => {
-  const entreprises = storage.getEntreprises();
+entreprisesRouter.get("/", async (req: Request, res: Response) => {
+  const entreprises = await storage.getEntreprises();
   return res.json({ success: true, data: entreprises });
 });
 
 // GET /api/entreprises/:id
-entreprisesRouter.get("/:id", (req: Request, res: Response) => {
-  const e = storage.getEntreprise(req.params.id);
+entreprisesRouter.get("/:id", async (req: Request, res: Response) => {
+  const e = await storage.getEntreprise(req.params.id);
   if (!e) {
-    return res.status(404).json({ success: false, error: "Entreprise non trouvée" });
+    return res
+      .status(404)
+      .json({ success: false, error: "Entreprise non trouvée" });
   }
   return res.json({ success: true, data: e });
 });
@@ -30,9 +32,9 @@ entreprisesRouter.get("/:id", (req: Request, res: Response) => {
 entreprisesRouter.post(
   "/",
   requireRole(UserRole.SUPER_ADMIN),
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     try {
-      const e = storage.createEntreprise(req.body);
+      const e = await storage.createEntreprise(req.body);
       return res.status(201).json({ success: true, data: e });
     } catch (error) {
       return res.status(400).json({
@@ -47,10 +49,12 @@ entreprisesRouter.post(
 entreprisesRouter.put(
   "/:id",
   requireRole(UserRole.SUPER_ADMIN),
-  (req: Request, res: Response) => {
-    const e = storage.updateEntreprise(req.params.id, req.body);
+  async (req: Request, res: Response) => {
+    const e = await storage.updateEntreprise(req.params.id, req.body);
     if (!e) {
-      return res.status(404).json({ success: false, error: "Entreprise non trouvée" });
+      return res
+        .status(404)
+        .json({ success: false, error: "Entreprise non trouvée" });
     }
     return res.json({ success: true, data: e });
   }

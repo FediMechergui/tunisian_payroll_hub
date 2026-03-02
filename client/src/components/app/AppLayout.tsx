@@ -27,6 +27,8 @@ import {
   Building2,
   CircleUser,
   Key,
+  Globe,
+  FileUp,
 } from "lucide-react";
 import NotificationBell from "@/components/app/NotificationBell";
 
@@ -90,6 +92,20 @@ const navItems: NavItem[] = [
     icon: <BarChart3 size={20} />,
     minRole: UserRole.MANAGER,
   },
+  {
+    label: "Demandes Docs",
+    href: "/app/demandes-documents",
+    icon: <FileUp size={20} />,
+  },
+];
+
+const platformItems: NavItem[] = [
+  {
+    label: "Plateforme",
+    href: "/app/plateforme",
+    icon: <Globe size={20} />,
+    minRole: UserRole.SUPER_EXTERNAL_ADMIN,
+  },
 ];
 
 const adminItems: NavItem[] = [
@@ -115,6 +131,7 @@ const adminItems: NavItem[] = [
 
 function getRoleLabel(role: UserRole): string {
   const labels: Record<UserRole, string> = {
+    [UserRole.SUPER_EXTERNAL_ADMIN]: "Admin Plateforme",
     [UserRole.SUPER_ADMIN]: "Super Administrateur",
     [UserRole.ADMIN_RH]: "Admin RH",
     [UserRole.ADMIN_PAIE]: "Admin Paie",
@@ -131,11 +148,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   const { user, logout } = useAuth();
 
-  const userLevel = ROLE_HIERARCHY[user?.role as keyof typeof ROLE_HIERARCHY] || 0;
+  const userLevel =
+    ROLE_HIERARCHY[user?.role as keyof typeof ROLE_HIERARCHY] || 0;
 
   const isVisible = (item: NavItem) => {
     if (!item.minRole) return true;
-    const requiredLevel = ROLE_HIERARCHY[item.minRole as keyof typeof ROLE_HIERARCHY] || 0;
+    const requiredLevel =
+      ROLE_HIERARCHY[item.minRole as keyof typeof ROLE_HIERARCHY] || 0;
     return userLevel >= requiredLevel;
   };
 
@@ -158,8 +177,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         {sidebarOpen && (
           <div className="overflow-hidden">
-            <h1 className="font-bold text-slate-900 text-sm leading-tight truncate">PayrollHub</h1>
-            <p className="text-[10px] text-slate-400 truncate">Paie & RH Tunisie</p>
+            <h1 className="font-bold text-slate-900 text-sm leading-tight truncate">
+              PayrollHub
+            </h1>
+            <p className="text-[10px] text-slate-400 truncate">
+              Paie & RH Tunisie
+            </p>
           </div>
         )}
       </div>
@@ -170,7 +193,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <ScrollArea className="flex-1 py-3">
         <nav className="space-y-1 px-2">
           {/* Main items */}
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const active = isActive(item.href);
             if (item.disabled) {
               return (
@@ -182,7 +205,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 >
                   <span className="flex-shrink-0 opacity-40">{item.icon}</span>
                   {sidebarOpen && (
-                    <span className="text-sm flex-1 opacity-40">{item.label}</span>
+                    <span className="text-sm flex-1 opacity-40">
+                      {item.label}
+                    </span>
                   )}
                   {sidebarOpen && item.disabledLabel && (
                     <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-400 rounded-full">
@@ -204,16 +229,61 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span className={`flex-shrink-0 transition-colors ${active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`}>
+                  <span
+                    className={`flex-shrink-0 transition-colors ${active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`}
+                  >
                     {item.icon}
                   </span>
                   {sidebarOpen && (
-                    <span className="text-sm font-medium flex-1">{item.label}</span>
-                  )}
-                  {sidebarOpen && item.badge !== undefined && item.badge > 0 && (
-                    <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">
-                      {item.badge}
+                    <span className="text-sm font-medium flex-1">
+                      {item.label}
                     </span>
+                  )}
+                  {sidebarOpen &&
+                    item.badge !== undefined &&
+                    item.badge > 0 && (
+                      <span className="text-xs px-2 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">
+                        {item.badge}
+                      </span>
+                    )}
+                </div>
+              </Link>
+            );
+          })}
+
+          {/* Platform section (Super External Admin) */}
+          {platformItems.some(isVisible) && (
+            <div className="pt-3 pb-1">
+              {sidebarOpen && (
+                <p className="text-[10px] uppercase font-semibold text-slate-300 tracking-wider px-3 mb-1">
+                  Plateforme
+                </p>
+              )}
+              <Separator className="mx-1" />
+            </div>
+          )}
+
+          {platformItems.filter(isVisible).map(item => {
+            const active = isActive(item.href);
+            return (
+              <Link key={item.href} href={item.href}>
+                <div
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-150 cursor-pointer group ${
+                    sidebarOpen ? "" : "justify-center"
+                  } ${
+                    active
+                      ? "bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 shadow-sm"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <span
+                    className={`flex-shrink-0 transition-colors ${active ? "text-purple-600" : "text-slate-400 group-hover:text-slate-600"}`}
+                  >
+                    {item.icon}
+                  </span>
+                  {sidebarOpen && (
+                    <span className="text-sm font-medium">{item.label}</span>
                   )}
                 </div>
               </Link>
@@ -233,7 +303,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Admin items */}
-          {adminItems.filter(isVisible).map((item) => {
+          {adminItems.filter(isVisible).map(item => {
             const active = isActive(item.href);
             return (
               <Link key={item.href} href={item.href}>
@@ -247,7 +317,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <span className={`flex-shrink-0 transition-colors ${active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`}>
+                  <span
+                    className={`flex-shrink-0 transition-colors ${active ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"}`}
+                  >
                     {item.icon}
                   </span>
                   {sidebarOpen && (
@@ -262,10 +334,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* User section */}
       <div className="p-3 border-t border-slate-100">
-        <div className={`flex items-center gap-3 ${sidebarOpen ? "" : "justify-center"}`}>
+        <div
+          className={`flex items-center gap-3 ${sidebarOpen ? "" : "justify-center"}`}
+        >
           <div className="w-9 h-9 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center flex-shrink-0">
             <span className="text-blue-700 font-semibold text-xs">
-              {user?.prenom?.[0]}{user?.nom?.[0]}
+              {user?.prenom?.[0]}
+              {user?.nom?.[0]}
             </span>
           </div>
           {sidebarOpen && (
@@ -279,13 +354,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </div>
           )}
           {sidebarOpen && (
-            <button
+            <Button
               onClick={handleLogout}
               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
               title="Déconnexion"
+              aria-label="Déconnexion"
             >
               <LogOut size={16} />
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -309,12 +385,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <div className="absolute right-2 top-3">
-          <button
+          <Button
             onClick={() => setMobileOpen(false)}
             className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
         <SidebarContent />
       </aside>
@@ -326,7 +402,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         <SidebarContent />
-        <button
+        <Button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="absolute top-5 -right-3 w-6 h-6 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 shadow-sm z-10 hidden lg:flex"
           style={{ left: sidebarOpen ? "228px" : "52px" }}
@@ -335,7 +411,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             size={14}
             className={`transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
           />
-        </button>
+        </Button>
       </aside>
 
       {/* Main content */}
@@ -343,15 +419,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Top bar */}
         <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <button
+            <Button
               onClick={() => setMobileOpen(true)}
               className="lg:hidden p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"
             >
               <Menu size={20} />
-            </button>
+            </Button>
             <div className="flex items-center gap-2 text-sm">
               <Building2 size={16} className="text-slate-400" />
-              <span className="text-slate-600 font-medium hidden sm:inline">PayrollHub Demo SARL</span>
+              <span className="text-slate-600 font-medium hidden sm:inline">
+                PayrollHub Demo SARL
+              </span>
             </div>
           </div>
 
@@ -360,7 +438,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="lg:hidden flex items-center gap-2 ml-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center">
                 <span className="text-blue-700 font-semibold text-xs">
-                  {user?.prenom?.[0]}{user?.nom?.[0]}
+                  {user?.prenom?.[0]}
+                  {user?.nom?.[0]}
                 </span>
               </div>
             </div>
@@ -369,9 +448,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-4 sm:p-6 lg:p-8">
-            {children}
-          </div>
+          <div className="p-4 sm:p-6 lg:p-8">{children}</div>
         </main>
       </div>
     </div>

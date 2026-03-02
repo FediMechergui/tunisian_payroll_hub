@@ -35,15 +35,21 @@ export default function Login() {
       {/* Animated background patterns */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-r from-blue-500/10 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-l from-indigo-500/10 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div
+          className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-l from-indigo-500/10 to-transparent rounded-full blur-3xl animate-pulse"
+          style={{ animationDelay: "1s" }}
+        />
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
       </div>
 
       {/* Grid pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
-        backgroundSize: '60px 60px'
-      }} />
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)`,
+          backgroundSize: "60px 60px",
+        }}
+      />
 
       <div className="relative z-10 w-full max-w-md mx-4">
         {/* Logo & Brand */}
@@ -52,7 +58,9 @@ export default function Login() {
             <span className="text-white font-bold text-2xl">PH</span>
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">PayrollHub</h1>
-          <p className="text-blue-200/60 text-sm">Gestion Intégrée de Paie et RH — Tunisie</p>
+          <p className="text-blue-200/60 text-sm">
+            Gestion Intégrée de Paie et RH — Tunisie
+          </p>
         </div>
 
         <Card className="bg-white/[0.07] backdrop-blur-xl border-white/10 shadow-2xl">
@@ -73,7 +81,7 @@ export default function Login() {
                   type="email"
                   placeholder="votre@email.tn"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={e => setEmail(e.target.value)}
                   required
                   className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 focus:ring-blue-400/20 h-11"
                 />
@@ -89,7 +97,7 @@ export default function Login() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={motDePasse}
-                    onChange={(e) => setMotDePasse(e.target.value)}
+                    onChange={e => setMotDePasse(e.target.value)}
                     required
                     className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 focus:ring-blue-400/20 h-11 pr-10"
                   />
@@ -126,8 +134,14 @@ export default function Login() {
             </form>
 
             <div className="mt-6 pt-5 border-t border-white/5">
-              <p className="text-center text-blue-200/30 text-xs">
-                Accès par défaut : admin@payrollhub.tn / Admin2025!
+              <p className="text-center text-blue-200/40 text-sm">
+                Pas encore de compte ?{" "}
+                <a
+                  href="/signup"
+                  className="text-blue-400 hover:text-blue-300 underline font-medium"
+                >
+                  Créer un espace entreprise
+                </a>
               </p>
             </div>
           </CardContent>

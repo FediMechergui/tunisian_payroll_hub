@@ -5,9 +5,19 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { employeesApi, payrollApi, congesApi } from "@/lib/api";
+import {
+  employeesApi,
+  payrollApi,
+  congesApi,
+  documentRequestsApi,
+} from "@/lib/api";
 import type { Employe, BulletinPaie, Conge } from "@shared/types";
-import { LeaveType, LeaveStatus, MaritalStatus, ContractType } from "@shared/types";
+import {
+  LeaveType,
+  LeaveStatus,
+  MaritalStatus,
+  ContractType,
+} from "@shared/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +71,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  FileUp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -86,12 +97,32 @@ const LEAVE_TYPE_ICONS: Record<LeaveType, React.ReactNode> = {
 
 const STATUS_CONFIG: Record<
   LeaveStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: React.ReactNode }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+    icon: React.ReactNode;
+  }
 > = {
-  [LeaveStatus.EN_ATTENTE]: { label: "En attente", variant: "secondary", icon: <Clock size={12} /> },
-  [LeaveStatus.APPROUVE]: { label: "Approuvé", variant: "default", icon: <CheckCircle2 size={12} /> },
-  [LeaveStatus.REJETE]: { label: "Rejeté", variant: "destructive", icon: <XCircle size={12} /> },
-  [LeaveStatus.ANNULE]: { label: "Annulé", variant: "outline", icon: <Ban size={12} /> },
+  [LeaveStatus.EN_ATTENTE]: {
+    label: "En attente",
+    variant: "secondary",
+    icon: <Clock size={12} />,
+  },
+  [LeaveStatus.APPROUVE]: {
+    label: "Approuvé",
+    variant: "default",
+    icon: <CheckCircle2 size={12} />,
+  },
+  [LeaveStatus.REJETE]: {
+    label: "Rejeté",
+    variant: "destructive",
+    icon: <XCircle size={12} />,
+  },
+  [LeaveStatus.ANNULE]: {
+    label: "Annulé",
+    variant: "outline",
+    icon: <Ban size={12} />,
+  },
 };
 
 const MARITAL_LABELS: Record<MaritalStatus, string> = {
@@ -116,6 +147,7 @@ export default function SelfService() {
   const [employe, setEmploye] = useState<Employe | null>(null);
   const [bulletins, setBulletins] = useState<BulletinPaie[]>([]);
   const [conges, setConges] = useState<Conge[]>([]);
+  const [docRequests, setDocRequests] = useState<any[]>([]);
   const [balance, setBalance] = useState<{
     droitAnnuel: number;
     consomme: number;
@@ -140,21 +172,24 @@ export default function SelfService() {
       return;
     }
     try {
-      const [empRes, bulRes, congesRes, balRes] = await Promise.all([
+      const [empRes, bulRes, congesRes, balRes, docRes] = await Promise.all([
         employeesApi.get(user.employeId),
         payrollApi.getEmployeBulletins(user.employeId),
         congesApi.list(),
         congesApi.getBalance(user.employeId, new Date().getFullYear()),
+        documentRequestsApi
+          .list()
+          .catch(() => ({ data: { success: false, data: [] } })),
       ]);
 
-      if (empRes.data.success && empRes.data.data)
-        setEmploye(empRes.data.data);
+      if (empRes.data.success && empRes.data.data) setEmploye(empRes.data.data);
       if (bulRes.data.success && bulRes.data.data)
         setBulletins(bulRes.data.data);
       if (congesRes.data.success && congesRes.data.data)
         setConges(congesRes.data.data);
-      if (balRes.data.success && balRes.data.data)
-        setBalance(balRes.data.data);
+      if (balRes.data.success && balRes.data.data) setBalance(balRes.data.data);
+      if (docRes.data.success && docRes.data.data)
+        setDocRequests(docRes.data.data);
     } catch {
       toast.error("Erreur de chargement des données");
     } finally {
@@ -179,7 +214,7 @@ export default function SelfService() {
           if (dow !== 0 && dow !== 6) days++;
           d.setDate(d.getDate() + 1);
         }
-        setNewLeave((prev) => ({ ...prev, nbJours: days }));
+        setNewLeave(prev => ({ ...prev, nbJours: days }));
       }
     }
   }, [newLeave.dateDebut, newLeave.dateFin]);
@@ -276,7 +311,7 @@ export default function SelfService() {
       </div>
 
       <Tabs defaultValue="profil">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="profil" className="gap-1.5">
             <User size={14} /> Profil
           </TabsTrigger>
@@ -285,6 +320,9 @@ export default function SelfService() {
           </TabsTrigger>
           <TabsTrigger value="conges" className="gap-1.5">
             <CalendarDays size={14} /> Congés
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="gap-1.5">
+            <FileUp size={14} /> Documents
           </TabsTrigger>
         </TabsList>
 
@@ -362,9 +400,7 @@ export default function SelfService() {
                         </div>
                         <div className="flex justify-between">
                           <dt className="text-slate-500">Situation</dt>
-                          <dd>
-                            {MARITAL_LABELS[employe.situationFamiliale]}
-                          </dd>
+                          <dd>{MARITAL_LABELS[employe.situationFamiliale]}</dd>
                         </div>
                         <div className="flex justify-between">
                           <dt className="text-slate-500">Enfants</dt>
@@ -425,9 +461,7 @@ export default function SelfService() {
                         </div>
                         <div className="flex justify-between">
                           <dt className="text-slate-500">IBAN</dt>
-                          <dd className="font-mono text-xs">
-                            {employe.iban}
-                          </dd>
+                          <dd className="font-mono text-xs">{employe.iban}</dd>
                         </div>
                         {employe.banque && (
                           <div className="flex justify-between">
@@ -483,7 +517,7 @@ export default function SelfService() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bulletins.map((b) => {
+                  {bulletins.map(b => {
                     const dateGen = new Date(b.dateGeneration);
                     const label = dateGen.toLocaleDateString("fr-TN", {
                       month: "long",
@@ -596,8 +630,8 @@ export default function SelfService() {
                     <Label>Type de congé</Label>
                     <Select
                       value={newLeave.typeConge}
-                      onValueChange={(v) =>
-                        setNewLeave((prev) => ({ ...prev, typeConge: v }))
+                      onValueChange={v =>
+                        setNewLeave(prev => ({ ...prev, typeConge: v }))
                       }
                     >
                       <SelectTrigger>
@@ -620,8 +654,8 @@ export default function SelfService() {
                       <Input
                         type="date"
                         value={newLeave.dateDebut}
-                        onChange={(e) =>
-                          setNewLeave((prev) => ({
+                        onChange={e =>
+                          setNewLeave(prev => ({
                             ...prev,
                             dateDebut: e.target.value,
                           }))
@@ -634,8 +668,8 @@ export default function SelfService() {
                         type="date"
                         value={newLeave.dateFin}
                         min={newLeave.dateDebut}
-                        onChange={(e) =>
-                          setNewLeave((prev) => ({
+                        onChange={e =>
+                          setNewLeave(prev => ({
                             ...prev,
                             dateFin: e.target.value,
                           }))
@@ -655,8 +689,8 @@ export default function SelfService() {
                     <Label>Motif (optionnel)</Label>
                     <Input
                       value={newLeave.motif}
-                      onChange={(e) =>
-                        setNewLeave((prev) => ({
+                      onChange={e =>
+                        setNewLeave(prev => ({
                           ...prev,
                           motif: e.target.value,
                         }))
@@ -701,7 +735,7 @@ export default function SelfService() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {conges.map((c) => {
+                  {conges.map(c => {
                     const sc = STATUS_CONFIG[c.statut];
                     return (
                       <TableRow key={c.id}>
@@ -753,6 +787,108 @@ export default function SelfService() {
                   })}
                 </TableBody>
               </Table>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* ==================== TAB: DOCUMENTS ==================== */}
+        <TabsContent value="documents" className="mt-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">
+                Mes demandes de documents
+              </h3>
+              <p className="text-sm text-slate-500">
+                Suivez l'état de vos demandes de documents RH
+              </p>
+            </div>
+            <Button size="sm" asChild>
+              <a href="/app/demandes-documents">
+                <Plus size={14} className="mr-1" /> Nouvelle demande
+              </a>
+            </Button>
+          </div>
+
+          {docRequests.length === 0 ? (
+            <Card className="border-0 shadow-sm">
+              <CardContent className="py-12 text-center">
+                <FileUp size={40} className="mx-auto text-slate-300 mb-3" />
+                <p className="text-slate-500 font-medium">
+                  Aucune demande de document
+                </p>
+                <p className="text-sm text-slate-400 mt-1">
+                  Rendez-vous sur la page{" "}
+                  <a
+                    href="/app/demandes-documents"
+                    className="text-blue-600 underline"
+                  >
+                    Demandes Documents
+                  </a>{" "}
+                  pour créer votre première demande.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-0 shadow-sm">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead>Pièces</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {docRequests.slice(0, 10).map((dr: any) => (
+                    <TableRow key={dr.id}>
+                      <TableCell className="text-sm font-medium">
+                        {dr.typeDocument?.replace(/_/g, " ") ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {dr.createdAt
+                          ? new Date(dr.createdAt).toLocaleDateString("fr-TN", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            dr.statut === "approuve" || dr.statut === "genere"
+                              ? "default"
+                              : dr.statut === "rejete"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                          className="text-xs"
+                        >
+                          {dr.statut === "en_attente" && "En attente"}
+                          {dr.statut === "en_revision" && "En révision"}
+                          {dr.statut === "approuve" && "Approuvé"}
+                          {dr.statut === "rejete" && "Rejeté"}
+                          {dr.statut === "genere" && "Généré"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-500">
+                        {dr.uploadedPapers?.length ?? 0} /{" "}
+                        {dr.requiredPapers?.length ?? 0}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              {docRequests.length > 10 && (
+                <div className="p-3 text-center border-t">
+                  <Button variant="link" size="sm" asChild>
+                    <a href="/app/demandes-documents">
+                      Voir toutes les demandes →
+                    </a>
+                  </Button>
+                </div>
+              )}
             </Card>
           )}
         </TabsContent>

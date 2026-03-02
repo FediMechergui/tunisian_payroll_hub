@@ -22,45 +22,57 @@ const MOIS_NOMS = [
 ];
 
 // ── GET /api/reports — list reports ──────────────────────────────────
-reportsRouter.get("/", (req: Request, res: Response) => {
-  const reports = storage.getReports(req.user!.entrepriseId);
+reportsRouter.get("/", async (req: Request, res: Response) => {
+  const reports = await storage.getReports(req.user!.entrepriseId);
   return res.json({ success: true, data: reports });
 });
 
 // ── POST /api/reports/generate — generate a new report ───────────────
-reportsRouter.post("/generate", (req: Request, res: Response) => {
+reportsRouter.post("/generate", async (req: Request, res: Response) => {
   const parsed = generateReportSchema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ success: false, error: parsed.error.issues[0]?.message || "Données invalides" });
+    return res.status(400).json({
+      success: false,
+      error: parsed.error.issues[0]?.message || "Données invalides",
+    });
   }
 
   const { type, titre, periodeDebut, periodeFin, filtres } = parsed.data;
   const entrepriseId = req.user!.entrepriseId;
-  const entreprise = storage.getEntreprise(entrepriseId);
-  if (!entreprise) return res.status(404).json({ success: false, error: "Entreprise introuvable" });
+  const entreprise = await storage.getEntreprise(entrepriseId);
+  if (!entreprise)
+    return res
+      .status(404)
+      .json({ success: false, error: "Entreprise introuvable" });
 
-  const employes = storage.getEmployes(entrepriseId);
-  const periodes = storage.getPeriodesPaie(entrepriseId);
+  const employes = await storage.getEmployes(entrepriseId);
+  const periodes = await storage.getPeriodesPaie(entrepriseId);
 
   // Filter periodes by date range
   const startDate = new Date(periodeDebut);
   const endDate = new Date(periodeFin);
-  const relevantPeriodes = periodes.filter(p => {
+  const relevantPeriodes = periodes.filter((p: any) => {
     const periodeDate = new Date(p.annee, p.mois - 1, 1);
     return periodeDate >= startDate && periodeDate <= endDate;
   });
-  const allBulletins = relevantPeriodes.flatMap(p => storage.getBulletins(p.id));
+  const allBulletins: any[] = [];
+  for (const p of relevantPeriodes) {
+    const b = await storage.getBulletins(p.id);
+    allBulletins.push(...b);
+  }
 
   // Optional department filter
   let filteredEmployes = employes;
   if (filtres?.departement) {
-    filteredEmployes = employes.filter(e => e.departement === filtres.departement);
+    filteredEmployes = employes.filter(
+      (e: any) => e.departement === filtres.departement
+    );
   }
-  const empIds = new Set(filteredEmployes.map(e => e.id));
+  const empIds = new Set(filteredEmployes.map((e: any) => e.id));
   const filteredBulletins = allBulletins.filter(b => empIds.has(b.employeId));
 
   // Save report record
-  const report = storage.createReport({
+  const report = await storage.createReport({
     entrepriseId,
     type,
     titre,
@@ -74,40 +86,74 @@ reportsRouter.post("/generate", (req: Request, res: Response) => {
     const format = req.query.format === "csv" ? "csv" : "pdf";
 
     if (format === "csv") {
-      const csv = generateReportCSV(type, filteredEmployes, filteredBulletins, relevantPeriodes, titre);
+      const csv = generateReportCSV(
+        type,
+        filteredEmployes,
+        filteredBulletins,
+        relevantPeriodes,
+        titre
+      );
       res.setHeader("Content-Type", "text/csv; charset=utf-8");
-      res.setHeader("Content-Disposition", `attachment; filename="${titre.replace(/\s/g, "_")}.csv"`);
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${titre.replace(/\s/g, "_")}.csv"`
+      );
       return res.send(csv);
     }
 
-    const pdf = generateReportPDF(type, entreprise, filteredEmployes, filteredBulletins, relevantPeriodes, titre, periodeDebut, periodeFin);
+    const pdf = await generateReportPDF(
+      type,
+      entreprise,
+      filteredEmployes,
+      filteredBulletins,
+      relevantPeriodes,
+      titre,
+      periodeDebut,
+      periodeFin
+    );
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${titre.replace(/\s/g, "_")}.pdf"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${titre.replace(/\s/g, "_")}.pdf"`
+    );
     pdf.pipe(res);
   } catch (err: any) {
-    return res.status(500).json({ success: false, error: err.message || "Erreur lors de la génération" });
+    return res.status(500).json({
+      success: false,
+      error: err.message || "Erreur lors de la génération",
+    });
   }
 });
 
 // ── GET /api/reports/:id — report metadata ───────────────────────────
-reportsRouter.get("/:id", (req: Request, res: Response) => {
-  const report = storage.getReport(req.params.id);
-  if (!report) return res.status(404).json({ success: false, error: "Rapport introuvable" });
+reportsRouter.get("/:id", async (req: Request, res: Response) => {
+  const report = await storage.getReport(req.params.id);
+  if (!report)
+    return res
+      .status(404)
+      .json({ success: false, error: "Rapport introuvable" });
   return res.json({ success: true, data: report });
 });
 
 // ── DELETE /api/reports/:id — delete report ──────────────────────────
-reportsRouter.delete("/:id", requireMinRole(UserRole.ADMIN_RH), (req: Request, res: Response) => {
-  const deleted = storage.deleteReport(req.params.id);
-  if (!deleted) return res.status(404).json({ success: false, error: "Rapport introuvable" });
-  return res.json({ success: true, message: "Rapport supprimé" });
-});
+reportsRouter.delete(
+  "/:id",
+  requireMinRole(UserRole.ADMIN_RH),
+  async (req: Request, res: Response) => {
+    const deleted = await storage.deleteReport(req.params.id);
+    if (!deleted)
+      return res
+        .status(404)
+        .json({ success: false, error: "Rapport introuvable" });
+    return res.json({ success: true, message: "Rapport supprimé" });
+  }
+);
 
 // ═══════════════════════════════════════════════════════════════════════
 // PDF report generator
 // ═══════════════════════════════════════════════════════════════════════
 
-function generateReportPDF(
+async function generateReportPDF(
   type: ReportType,
   entreprise: any,
   employes: Employe[],
@@ -115,18 +161,29 @@ function generateReportPDF(
   periodes: any[],
   titre: string,
   periodeDebut: string,
-  periodeFin: string,
+  periodeFin: string
 ) {
   const doc = new PDFDocument({ size: "A4", layout: "landscape", margin: 40 });
 
   // Header
   doc.fontSize(16).font("Helvetica-Bold").text(entreprise.nom, 40, 40);
-  doc.fontSize(10).font("Helvetica").text(`MF: ${entreprise.mf || "N/A"}`, 40, 60);
-  doc.fontSize(14).font("Helvetica-Bold").text(titre, 40, 90, { align: "center" });
-  doc.fontSize(9).font("Helvetica").text(
-    `Période: ${periodeDebut} → ${periodeFin}  |  Généré le ${new Date().toLocaleDateString("fr-TN")}`,
-    40, 112, { align: "center" }
-  );
+  doc
+    .fontSize(10)
+    .font("Helvetica")
+    .text(`MF: ${entreprise.mf || "N/A"}`, 40, 60);
+  doc
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .text(titre, 40, 90, { align: "center" });
+  doc
+    .fontSize(9)
+    .font("Helvetica")
+    .text(
+      `Période: ${periodeDebut} → ${periodeFin}  |  Généré le ${new Date().toLocaleDateString("fr-TN")}`,
+      40,
+      112,
+      { align: "center" }
+    );
   doc.moveDown(2);
 
   switch (type) {
@@ -140,7 +197,7 @@ function generateReportPDF(
       generateChargesSocialesPDF(doc, employes, bulletins, periodes);
       break;
     case ReportType.CONGES:
-      generateCongesPDF(doc, employes, entreprise.id);
+      await generateCongesPDF(doc, employes, entreprise.id);
       break;
     case ReportType.COUT_DEPARTEMENT:
       generateCoutDeptPDF(doc, employes, bulletins);
@@ -155,20 +212,41 @@ function generateReportPDF(
 }
 
 // ── Masse Salariale ──────────────────────────────────────────────────
-function generateMasseSalarialePDF(doc: PDFKit.PDFDocument, employes: Employe[], bulletins: BulletinPaie[], periodes: any[]) {
+function generateMasseSalarialePDF(
+  doc: PDFKit.PDFDocument,
+  employes: Employe[],
+  bulletins: BulletinPaie[],
+  periodes: any[]
+) {
   const y = doc.y;
   const cols = [40, 140, 250, 350, 440, 530, 620, 700];
-  const headers = ["Mois", "Nb Bulletins", "Brut Total", "CNSS Sal.", "CNSS Pat.", "IRPP", "Net Total", "Coût Total"];
+  const headers = [
+    "Mois",
+    "Nb Bulletins",
+    "Brut Total",
+    "CNSS Sal.",
+    "CNSS Pat.",
+    "IRPP",
+    "Net Total",
+    "Coût Total",
+  ];
 
   doc.fontSize(8).font("Helvetica-Bold");
   headers.forEach((h, i) => doc.text(h, cols[i], y, { width: 90 }));
-  doc.moveTo(40, y + 12).lineTo(780, y + 12).stroke();
+  doc
+    .moveTo(40, y + 12)
+    .lineTo(780, y + 12)
+    .stroke();
 
   doc.font("Helvetica").fontSize(8);
   let currentY = y + 18;
-  let grandBrut = 0, grandNet = 0, grandCout = 0;
+  let grandBrut = 0,
+    grandNet = 0,
+    grandCout = 0;
 
-  for (const p of periodes.sort((a: any, b: any) => a.annee * 100 + a.mois - (b.annee * 100 + b.mois))) {
+  for (const p of periodes.sort(
+    (a: any, b: any) => a.annee * 100 + a.mois - (b.annee * 100 + b.mois)
+  )) {
     const pBulletins = bulletins.filter(b => b.periodePaieId === p.id);
     if (pBulletins.length === 0) continue;
 
@@ -179,7 +257,9 @@ function generateMasseSalarialePDF(doc: PDFKit.PDFDocument, employes: Employe[],
     const net = pBulletins.reduce((s, b) => s + b.netAPayer, 0);
     const cout = brut + cnssPat;
 
-    grandBrut += brut; grandNet += net; grandCout += cout;
+    grandBrut += brut;
+    grandNet += net;
+    grandCout += cout;
 
     const label = `${MOIS_NOMS[p.mois - 1]} ${p.annee}`;
     doc.text(label, cols[0], currentY, { width: 100 });
@@ -191,7 +271,10 @@ function generateMasseSalarialePDF(doc: PDFKit.PDFDocument, employes: Employe[],
     doc.text(fmt(net), cols[6], currentY, { width: 90 });
     doc.text(fmt(cout), cols[7], currentY, { width: 90 });
     currentY += 14;
-    if (currentY > 540) { doc.addPage(); currentY = 40; }
+    if (currentY > 540) {
+      doc.addPage();
+      currentY = 40;
+    }
   }
 
   doc.moveTo(40, currentY).lineTo(780, currentY).stroke();
@@ -216,10 +299,18 @@ function generateEffectifsPDF(doc: PDFKit.PDFDocument, employes: Employe[]) {
   let currentY = doc.y;
   doc.fontSize(8).font("Helvetica-Bold");
   const cols = [40, 200, 340, 450, 560, 680];
-  ["Département", "Nb Employés", "CDI", "CDD", "CIVP/KARAMA", "Ancienneté Moy."].forEach((h, i) =>
-    doc.text(h, cols[i], currentY, { width: 130 })
-  );
-  doc.moveTo(40, currentY + 12).lineTo(780, currentY + 12).stroke();
+  [
+    "Département",
+    "Nb Employés",
+    "CDI",
+    "CDD",
+    "CIVP/KARAMA",
+    "Ancienneté Moy.",
+  ].forEach((h, i) => doc.text(h, cols[i], currentY, { width: 130 }));
+  doc
+    .moveTo(40, currentY + 12)
+    .lineTo(780, currentY + 12)
+    .stroke();
   currentY += 18;
 
   doc.font("Helvetica");
@@ -227,11 +318,16 @@ function generateEffectifsPDF(doc: PDFKit.PDFDocument, employes: Employe[]) {
   for (const [dept, emps] of Array.from(byDept.entries()).sort()) {
     const cdi = emps.filter(e => e.typeContrat === ContractType.CDI).length;
     const cdd = emps.filter(e => e.typeContrat === ContractType.CDD).length;
-    const civpKarama = emps.filter(e => e.typeContrat === ContractType.SIVP || e.typeContrat === ContractType.KARAMA).length;
-    const anciennete = emps.reduce((s, e) => {
-      const hire = new Date(e.dateEmbauche);
-      return s + (now.getTime() - hire.getTime()) / (365.25 * 86400000);
-    }, 0) / emps.length;
+    const civpKarama = emps.filter(
+      e =>
+        e.typeContrat === ContractType.SIVP ||
+        e.typeContrat === ContractType.KARAMA
+    ).length;
+    const anciennete =
+      emps.reduce((s, e) => {
+        const hire = new Date(e.dateEmbauche);
+        return s + (now.getTime() - hire.getTime()) / (365.25 * 86400000);
+      }, 0) / emps.length;
 
     doc.text(dept, cols[0], currentY, { width: 150 });
     doc.text(String(emps.length), cols[1], currentY, { width: 130 });
@@ -249,18 +345,36 @@ function generateEffectifsPDF(doc: PDFKit.PDFDocument, employes: Employe[]) {
 }
 
 // ── Charges Sociales ─────────────────────────────────────────────────
-function generateChargesSocialesPDF(doc: PDFKit.PDFDocument, employes: Employe[], bulletins: BulletinPaie[], periodes: any[]) {
+function generateChargesSocialesPDF(
+  doc: PDFKit.PDFDocument,
+  employes: Employe[],
+  bulletins: BulletinPaie[],
+  periodes: any[]
+) {
   const y = doc.y;
   const cols = [40, 140, 250, 360, 470, 580, 680];
-  const headers = ["Mois", "CNSS Salarial", "CNSS Patronal", "FOPROLOS", "TFP", "IRPP + CSS", "Total Charges"];
+  const headers = [
+    "Mois",
+    "CNSS Salarial",
+    "CNSS Patronal",
+    "FOPROLOS",
+    "TFP",
+    "IRPP + CSS",
+    "Total Charges",
+  ];
   doc.fontSize(8).font("Helvetica-Bold");
   headers.forEach((h, i) => doc.text(h, cols[i], y, { width: 100 }));
-  doc.moveTo(40, y + 12).lineTo(780, y + 12).stroke();
+  doc
+    .moveTo(40, y + 12)
+    .lineTo(780, y + 12)
+    .stroke();
 
   let currentY = y + 18;
   doc.font("Helvetica");
 
-  for (const p of periodes.sort((a: any, b: any) => a.annee * 100 + a.mois - (b.annee * 100 + b.mois))) {
+  for (const p of periodes.sort(
+    (a: any, b: any) => a.annee * 100 + a.mois - (b.annee * 100 + b.mois)
+  )) {
     const pBulletins = bulletins.filter(b => b.periodePaieId === p.id);
     if (pBulletins.length === 0) continue;
 
@@ -281,29 +395,52 @@ function generateChargesSocialesPDF(doc: PDFKit.PDFDocument, employes: Employe[]
     doc.text(fmt(irppCss), cols[5], currentY, { width: 100 });
     doc.text(fmt(total), cols[6], currentY, { width: 100 });
     currentY += 14;
-    if (currentY > 540) { doc.addPage(); currentY = 40; }
+    if (currentY > 540) {
+      doc.addPage();
+      currentY = 40;
+    }
   }
 }
 
 // ── Congés ───────────────────────────────────────────────────────────
-function generateCongesPDF(doc: PDFKit.PDFDocument, employes: Employe[], entrepriseId: string) {
+async function generateCongesPDF(
+  doc: PDFKit.PDFDocument,
+  employes: Employe[],
+  entrepriseId: string
+) {
   const y = doc.y;
   const cols = [40, 200, 320, 440, 560, 680];
-  const headers = ["Employé", "Département", "Total Demandes", "Approuvés", "En attente", "Solde"];
+  const headers = [
+    "Employé",
+    "Département",
+    "Total Demandes",
+    "Approuvés",
+    "En attente",
+    "Solde",
+  ];
   doc.fontSize(8).font("Helvetica-Bold");
   headers.forEach((h, i) => doc.text(h, cols[i], y, { width: 110 }));
-  doc.moveTo(40, y + 12).lineTo(780, y + 12).stroke();
+  doc
+    .moveTo(40, y + 12)
+    .lineTo(780, y + 12)
+    .stroke();
 
   let currentY = y + 18;
   doc.font("Helvetica");
 
-  const allConges = storage.getConges(entrepriseId);
+  const allConges = await storage.getConges(entrepriseId);
 
   for (const emp of employes.sort((a, b) => a.nom.localeCompare(b.nom))) {
-    const empConges = allConges.filter(c => c.employeId === emp.id);
-    const approuves = empConges.filter(c => c.statut === LeaveStatus.APPROUVE).length;
-    const enAttente = empConges.filter(c => c.statut === LeaveStatus.EN_ATTENTE).length;
-    const joursApprouves = empConges.filter(c => c.statut === LeaveStatus.APPROUVE).reduce((s, c) => s + c.nbJours, 0);
+    const empConges = allConges.filter((c: any) => c.employeId === emp.id);
+    const approuves = empConges.filter(
+      (c: any) => c.statut === LeaveStatus.APPROUVE
+    ).length;
+    const enAttente = empConges.filter(
+      (c: any) => c.statut === LeaveStatus.EN_ATTENTE
+    ).length;
+    const joursApprouves = empConges
+      .filter((c: any) => c.statut === LeaveStatus.APPROUVE)
+      .reduce((s: number, c: any) => s + c.nbJours, 0);
 
     doc.text(`${emp.nom} ${emp.prenom}`, cols[0], currentY, { width: 150 });
     doc.text(emp.departement, cols[1], currentY, { width: 110 });
@@ -312,7 +449,10 @@ function generateCongesPDF(doc: PDFKit.PDFDocument, employes: Employe[], entrepr
     doc.text(String(enAttente), cols[4], currentY, { width: 110 });
     doc.text(`${joursApprouves} j`, cols[5], currentY, { width: 100 });
     currentY += 14;
-    if (currentY > 540) { doc.addPage(); currentY = 40; }
+    if (currentY > 540) {
+      doc.addPage();
+      currentY = 40;
+    }
   }
 }
 

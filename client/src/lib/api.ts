@@ -24,6 +24,8 @@ import type {
   Notification,
   ApiKey,
   ApiPermission,
+  DocumentRequest,
+  CreateCompanyWithAdminRequest,
 } from "@shared/types";
 
 const api = axios.create({
@@ -56,6 +58,25 @@ export const authApi = {
       email,
       motDePasse,
     }),
+
+  signup: (data: {
+    adminNom: string;
+    adminPrenom: string;
+    adminEmail: string;
+    adminPassword: string;
+    companyName: string;
+    matriculeFiscal: string;
+    codeCnss: string;
+    adresse: string;
+    secteurActivite: string;
+    regimeTravail: string;
+    telephone?: string;
+    plan: string;
+  }) =>
+    api.post<ApiResponse<{ user: Utilisateur; token: string; company: any }>>(
+      "/auth/signup",
+      data
+    ),
 
   logout: () => api.post<ApiResponse>("/auth/logout"),
 
@@ -266,15 +287,22 @@ export const congesApi = {
 
 export const documentsApi = {
   list: () =>
-    api.get<ApiResponse<(DocumentRH & { employe?: { nom: string; prenom: string; departement: string } })[]>>(
-      "/documents"
-    ),
+    api.get<
+      ApiResponse<
+        (DocumentRH & {
+          employe?: { nom: string; prenom: string; departement: string };
+        })[]
+      >
+    >("/documents"),
 
   listByEmploye: (employeId: string) =>
     api.get<ApiResponse<DocumentRH[]>>(`/documents/employe/${employeId}`),
 
-  generate: (data: { employeId: string; typeDocument: string; annee?: number }) =>
-    api.post("/documents/generate", data, { responseType: "blob" }),
+  generate: (data: {
+    employeId: string;
+    typeDocument: string;
+    annee?: number;
+  }) => api.post("/documents/generate", data, { responseType: "blob" }),
 
   download: (id: string) =>
     api.get(`/documents/${id}/download`, { responseType: "blob" }),
@@ -335,30 +363,30 @@ export const reportsApi = {
 
 export const notificationsApi = {
   list: () =>
-    api.get<ApiResponse<{ notifications: Notification[]; unreadCount: number }>>(
-      "/notifications"
-    ),
+    api.get<
+      ApiResponse<{ notifications: Notification[]; unreadCount: number }>
+    >("/notifications"),
 
   unreadCount: () =>
     api.get<ApiResponse<number>>("/notifications/unread-count"),
 
-  markRead: (id: string) =>
-    api.put<ApiResponse>(`/notifications/${id}/read`),
+  markRead: (id: string) => api.put<ApiResponse>(`/notifications/${id}/read`),
 
-  markAllRead: () =>
-    api.put<ApiResponse>("/notifications/read-all"),
+  markAllRead: () => api.put<ApiResponse>("/notifications/read-all"),
 
-  delete: (id: string) =>
-    api.delete<ApiResponse>(`/notifications/${id}`),
+  delete: (id: string) => api.delete<ApiResponse>(`/notifications/${id}`),
 };
 
 // --- API Keys API ---
 
 export const apiKeysApi = {
-  list: () =>
-    api.get<ApiResponse<Omit<ApiKey, "cle">[]>>("/api-keys"),
+  list: () => api.get<ApiResponse<Omit<ApiKey, "cle">[]>>("/api-keys"),
 
-  create: (data: { nom: string; permissions: string[]; limiteRequetes: number }) =>
+  create: (data: {
+    nom: string;
+    permissions: string[];
+    limiteRequetes: number;
+  }) =>
     api.post<ApiResponse<Omit<ApiKey, "cle"> & { rawKey: string }>>(
       "/api-keys",
       data
@@ -367,8 +395,96 @@ export const apiKeysApi = {
   toggle: (id: string) =>
     api.put<ApiResponse<ApiKey>>(`/api-keys/${id}/toggle`),
 
-  delete: (id: string) =>
-    api.delete<ApiResponse>(`/api-keys/${id}`),
+  delete: (id: string) => api.delete<ApiResponse>(`/api-keys/${id}`),
+};
+
+// --- Super External Admin API ---
+
+export const superExternalApi = {
+  listCompanies: () =>
+    api.get<
+      ApiResponse<(Entreprise & { employeeCount: number; userCount: number })[]>
+    >("/super-external/companies"),
+
+  getCompany: (id: string) =>
+    api.get<
+      ApiResponse<{
+        company: Entreprise;
+        users: Utilisateur[];
+        employeeCount: number;
+      }>
+    >(`/super-external/companies/${id}`),
+
+  createCompany: (data: CreateCompanyWithAdminRequest) =>
+    api.post<ApiResponse<{ entreprise: Entreprise; admin: Utilisateur }>>(
+      "/super-external/companies",
+      data
+    ),
+
+  updatePlan: (id: string, plan: string) =>
+    api.put<ApiResponse<Entreprise>>(`/super-external/companies/${id}/plan`, {
+      plan,
+    }),
+
+  getStats: () =>
+    api.get<
+      ApiResponse<{
+        totalCompanies: number;
+        totalUsers: number;
+        totalEmployees: number;
+        companiesByPlan: Record<string, number>;
+      }>
+    >("/super-external/stats"),
+
+  getPlans: () => api.get<ApiResponse<any>>("/super-external/plans"),
+};
+
+// --- Document Requests API ---
+
+export const documentRequestsApi = {
+  list: () =>
+    api.get<
+      ApiResponse<
+        (DocumentRequest & {
+          employe?: { nom: string; prenom: string; departement: string };
+        })[]
+      >
+    >("/document-requests"),
+
+  get: (id: string) =>
+    api.get<
+      ApiResponse<
+        DocumentRequest & {
+          employe?: { nom: string; prenom: string; departement: string };
+        }
+      >
+    >(`/document-requests/${id}`),
+
+  create: (data: { typeDocument: string; motif?: string; urgence?: string }) =>
+    api.post<ApiResponse<DocumentRequest>>("/document-requests", data),
+
+  uploadPapers: (id: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(f => formData.append("papers", f));
+    return api.post<ApiResponse<DocumentRequest>>(
+      `/document-requests/${id}/upload`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+  },
+
+  review: (id: string, statut: string, commentaire?: string) =>
+    api.put<ApiResponse<DocumentRequest>>(`/document-requests/${id}/review`, {
+      statut,
+      commentaire,
+    }),
+
+  cancel: (id: string) => api.delete<ApiResponse>(`/document-requests/${id}`),
+
+  getRequiredPapers: (type: string) =>
+    api.get<ApiResponse<string[]>>(
+      `/document-requests/required-papers/${type}`
+    ),
 };
 
 export default api;

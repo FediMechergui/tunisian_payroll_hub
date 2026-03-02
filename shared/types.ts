@@ -6,12 +6,28 @@
 // --- Enums ---
 
 export enum UserRole {
+  SUPER_EXTERNAL_ADMIN = "super_external_admin",
   SUPER_ADMIN = "super_admin",
   ADMIN_RH = "admin_rh",
   ADMIN_PAIE = "admin_paie",
   COMPTABLE = "comptable",
   MANAGER = "manager",
   EMPLOYE = "employe",
+}
+
+export enum PlanType {
+  GRATUIT = "gratuit",
+  STARTER = "starter",
+  BUSINESS = "business",
+  ENTERPRISE = "enterprise",
+}
+
+export enum DocumentRequestStatus {
+  EN_ATTENTE = "en_attente",
+  EN_REVISION = "en_revision",
+  APPROUVE = "approuve",
+  REJETE = "rejete",
+  GENERE = "genere",
 }
 
 export enum ContractType {
@@ -76,6 +92,14 @@ export enum MaritalStatus {
 export enum SectorType {
   INDUSTRIE = "industrie",
   SERVICES = "services",
+  COMMERCE = "commerce",
+  AGRICULTURE = "agriculture",
+  BTP = "btp",
+  TOURISME = "tourisme",
+  SANTE = "sante",
+  EDUCATION = "education",
+  TRANSPORT = "transport",
+  AUTRE = "autre",
 }
 
 export enum WorkRegime {
@@ -147,6 +171,9 @@ export interface Entreprise {
   telephone?: string;
   email?: string;
   regimeTravail: WorkRegime;
+  plan: PlanType;
+  maxEmployees: number;
+  createdBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -233,6 +260,7 @@ export interface Conge {
   documentUrl?: string;
   approuvePar?: string;
   dateApprobation?: string;
+  uploadedPapers?: { fileId: string; originalName: string; filename: string }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -379,6 +407,11 @@ export interface CreateEmployeRequest {
   salaireBase: number;
   iban: string;
   banque?: string;
+  // Optional: auto-create a user account linked to this employee
+  createAccount?: boolean;
+  accountEmail?: string;
+  accountPassword?: string;
+  accountRole?: UserRole;
 }
 
 export interface UpdateEmployeRequest extends Partial<CreateEmployeRequest> {}
@@ -401,6 +434,7 @@ export interface CreateEntrepriseRequest {
   telephone?: string;
   email?: string;
   regimeTravail: WorkRegime;
+  plan?: PlanType;
 }
 
 export interface DashboardStats {
@@ -432,7 +466,12 @@ export interface DashboardStats {
   analytics?: {
     turnover: { mois: string; entrees: number; sorties: number }[];
     absenteisme: { departement: string; taux: number }[];
-    coutParDepartement: { departement: string; brut: number; charges: number; total: number }[];
+    coutParDepartement: {
+      departement: string;
+      brut: number;
+      charges: number;
+      total: number;
+    }[];
     repartitionSalaires: { tranche: string; count: number }[];
     ancienneteDistribution: { tranche: string; count: number }[];
     documentsGeneres: number;
@@ -456,6 +495,62 @@ export interface PaginatedResponse<T> {
 }
 
 // --- Phase 5: External API Documentation ---
+
+export interface DocumentRequest {
+  id: string;
+  employeId: string;
+  entrepriseId: string;
+  typeDocument: DocumentType;
+  statut: DocumentRequestStatus;
+  motif?: string;
+  requiredPapers: string[];
+  uploadedPapers: {
+    fileId: string;
+    originalName: string;
+    filename: string;
+    path: string;
+    mimetype: string;
+    size: number;
+  }[];
+  reviewedBy?: string;
+  reviewComment?: string;
+  dateReview?: string;
+  generatedDocumentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UploadedFile {
+  id: string;
+  originalName: string;
+  filename: string;
+  path: string;
+  mimetype: string;
+  size: number;
+  uploadedBy: string;
+  entrepriseId?: string;
+  category: "paper" | "document" | "avatar" | "other";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCompanyWithAdminRequest {
+  // Company info
+  companyName: string;
+  adresse: string;
+  matriculeFiscal: string;
+  codeCnss: string;
+  secteurActivite: SectorType;
+  telephone?: string;
+  companyEmail?: string;
+  regimeTravail: WorkRegime;
+  plan: PlanType;
+  // Admin info
+  adminEmail: string;
+  adminPassword: string;
+  adminNom: string;
+  adminPrenom: string;
+}
 
 export interface ApiEndpointDoc {
   method: "GET" | "POST" | "PUT" | "DELETE";
