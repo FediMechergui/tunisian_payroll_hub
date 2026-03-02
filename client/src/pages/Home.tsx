@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CheckCircle2, BarChart3, Shield, Users, FileText, Zap, Clock, TrendingUp } from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function Home() {
   return (
@@ -15,12 +16,29 @@ export default function Home() {
             <span className="font-bold text-lg text-slate-900">PayrollHub</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-sm text-slate-600 hover:text-slate-900 transition">Fonctionnalités</a>
-            <a href="#benefits" className="text-sm text-slate-600 hover:text-slate-900 transition">Avantages</a>
-            <a href="#compliance" className="text-sm text-slate-600 hover:text-slate-900 transition">Conformité</a>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
-              Démarrer
-            </Button>
+            <a
+              href="#features"
+              className="text-sm text-slate-600 hover:text-slate-900 transition"
+            >
+              Fonctionnalités
+            </a>
+            <a
+              href="#benefits"
+              className="text-sm text-slate-600 hover:text-slate-900 transition"
+            >
+              Avantages
+            </a>
+            <a
+              href="#compliance"
+              className="text-sm text-slate-600 hover:text-slate-900 transition"
+            >
+              Conformité
+            </a>
+            <Link href="/login">
+              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">
+                Démarrer
+              </Button>
+            </Link>
           </div>
         </div>
       </nav>
@@ -33,18 +51,35 @@ export default function Home() {
               ✨ Conforme aux Réglementations 2025-2026
             </div>
             <h1 className="text-5xl md:text-6xl font-bold text-slate-900 leading-tight">
-              Gestion Intégrée de <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">Paie et RH</span> en Tunisie
+              Gestion Intégrée de{" "}
+              <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                Paie et RH
+              </span>{" "}
+              en Tunisie
             </h1>
             <p className="text-xl text-slate-600 leading-relaxed">
-              Une plateforme complète pour simplifier la gestion de la paie, des congés et des ressources humaines. Conforme à toutes les réglementations tunisiennes : CNSS, IRPP, SMIG 2025-2026.
+              Une plateforme complète pour simplifier la gestion de la paie, des
+              congés et des ressources humaines. Conforme à toutes les
+              réglementations tunisiennes : CNSS, IRPP, SMIG 2025-2026.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
-                Demander une Démo
-              </Button>
-              <Button size="lg" variant="outline" className="border-slate-300 text-slate-700">
-                En Savoir Plus
-              </Button>
+              <Link href="/signup">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+                >
+                  Demander une Démo
+                </Button>
+              </Link>
+              <a href="#features">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-slate-300 text-slate-700"
+                >
+                  En Savoir Plus
+                </Button>
+              </a>
             </div>
           </div>
           <div className="relative">
@@ -52,20 +87,40 @@ export default function Home() {
             <div className="relative bg-white rounded-2xl shadow-2xl p-8 border border-slate-100">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <CheckCircle2 className="text-green-600 flex-shrink-0" size={20} />
-                  <span className="text-sm text-green-800">Calcul automatique CNSS 9,68% / 17,07%</span>
+                  <CheckCircle2
+                    className="text-green-600 flex-shrink-0"
+                    size={20}
+                  />
+                  <span className="text-sm text-green-800">
+                    Calcul automatique CNSS 9,68% / 17,07%
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <CheckCircle2 className="text-blue-600 flex-shrink-0" size={20} />
-                  <span className="text-sm text-blue-800">IRPP 2025 avec 7 tranches progressives</span>
+                  <CheckCircle2
+                    className="text-blue-600 flex-shrink-0"
+                    size={20}
+                  />
+                  <span className="text-sm text-blue-800">
+                    IRPP 2025 avec 7 tranches progressives
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <CheckCircle2 className="text-purple-600 flex-shrink-0" size={20} />
-                  <span className="text-sm text-purple-800">Déclarations D-17 et DGI automatisées</span>
+                  <CheckCircle2
+                    className="text-purple-600 flex-shrink-0"
+                    size={20}
+                  />
+                  <span className="text-sm text-purple-800">
+                    Déclarations D-17 et DGI automatisées
+                  </span>
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                  <CheckCircle2 className="text-orange-600 flex-shrink-0" size={20} />
-                  <span className="text-sm text-orange-800">Portail libre-service employé intégré</span>
+                  <CheckCircle2
+                    className="text-orange-600 flex-shrink-0"
+                    size={20}
+                  />
+                  <span className="text-sm text-orange-800">
+                    Portail libre-service employé intégré
+                  </span>
                 </div>
               </div>
             </div>
@@ -77,9 +132,12 @@ export default function Home() {
       <section id="features" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Fonctionnalités Principales</h2>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              Fonctionnalités Principales
+            </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Une suite complète d'outils pour gérer tous les aspects de la paie et des RH
+              Une suite complète d'outils pour gérer tous les aspects de la paie
+              et des RH
             </p>
           </div>
 
@@ -93,7 +151,9 @@ export default function Home() {
                 <CardTitle>Calcul Automatisé de Paie</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Moteur de calcul intelligent appliquant automatiquement les règles tunisiennes : SMIG, CNSS, IRPP, FOPROLOS, TFP. Zéro erreur manuelle.
+                Moteur de calcul intelligent appliquant automatiquement les
+                règles tunisiennes : SMIG, CNSS, IRPP, FOPROLOS, TFP. Zéro
+                erreur manuelle.
               </CardContent>
             </Card>
 
@@ -106,7 +166,9 @@ export default function Home() {
                 <CardTitle>Déclarations Réglementaires</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Génération automatique des déclarations CNSS D-17, DGI, bulletins de paie officiels et attestations CNSS. Conformité garantie.
+                Génération automatique des déclarations CNSS D-17, DGI,
+                bulletins de paie officiels et attestations CNSS. Conformité
+                garantie.
               </CardContent>
             </Card>
 
@@ -119,7 +181,8 @@ export default function Home() {
                 <CardTitle>Portail Employé</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Accès sécurisé aux bulletins de paie, soldes de congés, demandes de congés et documents officiels. Réduction de la charge RH.
+                Accès sécurisé aux bulletins de paie, soldes de congés, demandes
+                de congés et documents officiels. Réduction de la charge RH.
               </CardContent>
             </Card>
 
@@ -132,7 +195,8 @@ export default function Home() {
                 <CardTitle>Gestion des Congés</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Suivi automatique des congés payés, maternité, paternité et maladie. Calcul des soldes et workflow d'approbation intégré.
+                Suivi automatique des congés payés, maternité, paternité et
+                maladie. Calcul des soldes et workflow d'approbation intégré.
               </CardContent>
             </Card>
 
@@ -145,7 +209,8 @@ export default function Home() {
                 <CardTitle>Sécurité et Conformité</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Authentification sécurisée, contrôle d'accès basé sur les rôles (RBAC), chiffrement des données sensibles et audit complet.
+                Authentification sécurisée, contrôle d'accès basé sur les rôles
+                (RBAC), chiffrement des données sensibles et audit complet.
               </CardContent>
             </Card>
 
@@ -158,7 +223,8 @@ export default function Home() {
                 <CardTitle>Rapports et Analyses</CardTitle>
               </CardHeader>
               <CardContent className="text-slate-600">
-                Tableaux de bord personnalisés, rapports de masse salariale, analyses d'absentéisme et prévisions financières.
+                Tableaux de bord personnalisés, rapports de masse salariale,
+                analyses d'absentéisme et prévisions financières.
               </CardContent>
             </Card>
           </div>
@@ -166,10 +232,15 @@ export default function Home() {
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="py-20 bg-gradient-to-br from-slate-900 to-slate-800 text-white">
+      <section
+        id="benefits"
+        className="py-20 bg-gradient-to-br from-slate-900 to-slate-800 text-white"
+      >
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4">Avantages pour Votre Entreprise</h2>
+            <h2 className="text-4xl font-bold mb-4">
+              Avantages pour Votre Entreprise
+            </h2>
             <p className="text-xl text-slate-300 max-w-2xl mx-auto">
               Optimisez vos opérations RH et réduisez les coûts administratifs
             </p>
@@ -185,7 +256,10 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg mb-2">Gain de Temps</h3>
-                  <p className="text-slate-300">Automatisation complète des calculs de paie, réduction de 80% du temps administratif.</p>
+                  <p className="text-slate-300">
+                    Automatisation complète des calculs de paie, réduction de
+                    80% du temps administratif.
+                  </p>
                 </div>
               </div>
 
@@ -197,7 +271,10 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg mb-2">Zéro Erreur</h3>
-                  <p className="text-slate-300">Moteur de calcul conforme aux réglementations tunisiennes, élimination des erreurs manuelles.</p>
+                  <p className="text-slate-300">
+                    Moteur de calcul conforme aux réglementations tunisiennes,
+                    élimination des erreurs manuelles.
+                  </p>
                 </div>
               </div>
 
@@ -208,8 +285,13 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-2">Conformité Garantie</h3>
-                  <p className="text-slate-300">Mise à jour automatique des barèmes SMIG, CNSS et IRPP. Déclarations réglementaires générées automatiquement.</p>
+                  <h3 className="font-bold text-lg mb-2">
+                    Conformité Garantie
+                  </h3>
+                  <p className="text-slate-300">
+                    Mise à jour automatique des barèmes SMIG, CNSS et IRPP.
+                    Déclarations réglementaires générées automatiquement.
+                  </p>
                 </div>
               </div>
 
@@ -220,8 +302,13 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-2">Satisfaction Employés</h3>
-                  <p className="text-slate-300">Accès 24/7 aux bulletins de paie et documents officiels. Demandes de congés simplifiées.</p>
+                  <h3 className="font-bold text-lg mb-2">
+                    Satisfaction Employés
+                  </h3>
+                  <p className="text-slate-300">
+                    Accès 24/7 aux bulletins de paie et documents officiels.
+                    Demandes de congés simplifiées.
+                  </p>
                 </div>
               </div>
             </div>
@@ -234,8 +321,13 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-2">Réduction des Coûts</h3>
-                  <p className="text-slate-300">Diminution des frais administratifs et des risques de pénalités pour non-conformité.</p>
+                  <h3 className="font-bold text-lg mb-2">
+                    Réduction des Coûts
+                  </h3>
+                  <p className="text-slate-300">
+                    Diminution des frais administratifs et des risques de
+                    pénalités pour non-conformité.
+                  </p>
                 </div>
               </div>
 
@@ -247,7 +339,10 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg mb-2">Scalabilité</h3>
-                  <p className="text-slate-300">Solution adaptée aux PME comme aux grandes entreprises. Croissance sans limite.</p>
+                  <p className="text-slate-300">
+                    Solution adaptée aux PME comme aux grandes entreprises.
+                    Croissance sans limite.
+                  </p>
                 </div>
               </div>
 
@@ -258,8 +353,13 @@ export default function Home() {
                   </div>
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg mb-2">Sécurité des Données</h3>
-                  <p className="text-slate-300">Chiffrement des données sensibles, conformité RGPD et audit complet des accès.</p>
+                  <h3 className="font-bold text-lg mb-2">
+                    Sécurité des Données
+                  </h3>
+                  <p className="text-slate-300">
+                    Chiffrement des données sensibles, conformité RGPD et audit
+                    complet des accès.
+                  </p>
                 </div>
               </div>
 
@@ -271,7 +371,10 @@ export default function Home() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg mb-2">Support Continu</h3>
-                  <p className="text-slate-300">Mise à jour régulière des réglementations, support technique 24/7 et formation utilisateurs.</p>
+                  <p className="text-slate-300">
+                    Mise à jour régulière des réglementations, support technique
+                    24/7 et formation utilisateurs.
+                  </p>
                 </div>
               </div>
             </div>
@@ -283,7 +386,9 @@ export default function Home() {
       <section id="compliance" className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">Conformité Réglementaire 2025-2026</h2>
+            <h2 className="text-4xl font-bold text-slate-900 mb-4">
+              Conformité Réglementaire 2025-2026
+            </h2>
             <p className="text-xl text-slate-600 max-w-2xl mx-auto">
               Entièrement conforme aux dernières réglementations tunisiennes
             </p>
@@ -296,14 +401,20 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">48h/semaine</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    48h/semaine
+                  </span>
                   <span className="font-bold text-slate-900">528,320 TND</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">40h/semaine</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    40h/semaine
+                  </span>
                   <span className="font-bold text-slate-900">448,238 TND</span>
                 </div>
-                <p className="text-sm text-slate-600 pt-2">Mis à jour au 1er janvier 2025</p>
+                <p className="text-sm text-slate-600 pt-2">
+                  Mis à jour au 1er janvier 2025
+                </p>
               </CardContent>
             </Card>
 
@@ -313,20 +424,28 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">Part Salariale</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    Part Salariale
+                  </span>
                   <span className="font-bold text-slate-900">9,68%</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">Part Patronale</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    Part Patronale
+                  </span>
                   <span className="font-bold text-slate-900">17,07%</span>
                 </div>
-                <p className="text-sm text-slate-600 pt-2">Augmentation de 0,5% appliquée</p>
+                <p className="text-sm text-slate-600 pt-2">
+                  Augmentation de 0,5% appliquée
+                </p>
               </CardContent>
             </Card>
 
             <Card className="border-slate-200">
               <CardHeader>
-                <CardTitle className="text-lg">IRPP 2025 (7 Tranches)</CardTitle>
+                <CardTitle className="text-lg">
+                  IRPP 2025 (7 Tranches)
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between p-2 bg-slate-50 rounded">
@@ -345,7 +464,9 @@ export default function Home() {
                   <span>20 001 - 30 000 TND</span>
                   <span className="font-bold">30,5%</span>
                 </div>
-                <div className="text-slate-600 text-xs pt-2">+ 4 tranches supplémentaires jusqu'à 40,5%</div>
+                <div className="text-slate-600 text-xs pt-2">
+                  + 4 tranches supplémentaires jusqu'à 40,5%
+                </div>
               </CardContent>
             </Card>
 
@@ -355,15 +476,21 @@ export default function Home() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">FOPROLOS</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    FOPROLOS
+                  </span>
                   <span className="font-bold text-slate-900">1%</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">TFP (Industrie)</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    TFP (Industrie)
+                  </span>
                   <span className="font-bold text-slate-900">2%</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm font-medium text-slate-700">TFP (Services)</span>
+                  <span className="text-sm font-medium text-slate-700">
+                    TFP (Services)
+                  </span>
                   <span className="font-bold text-slate-900">1%</span>
                 </div>
               </CardContent>
@@ -375,17 +502,31 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-6">Prêt à Transformer Votre Gestion RH ?</h2>
+          <h2 className="text-4xl font-bold mb-6">
+            Prêt à Transformer Votre Gestion RH ?
+          </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Rejoignez les entreprises tunisiennes qui font confiance à PayrollHub pour leur paie et leurs ressources humaines.
+            Rejoignez les entreprises tunisiennes qui font confiance à
+            PayrollHub pour leur paie et leurs ressources humaines.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 font-bold">
-              Demander une Démo Gratuite
-            </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-blue-700">
-              Contacter Notre Équipe
-            </Button>
+            <Link href="/signup">
+              <Button
+                size="lg"
+                className="bg-white text-blue-600 hover:bg-blue-50 font-bold"
+              >
+                Demander une Démo Gratuite
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-white text-white hover:bg-blue-700"
+              >
+                Contacter Notre Équipe
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -401,35 +542,75 @@ export default function Home() {
                 </div>
                 <span className="font-bold text-white">PayrollHub</span>
               </div>
-              <p className="text-sm">Gestion intégrée de paie et RH pour les entreprises tunisiennes.</p>
+              <p className="text-sm">
+                Gestion intégrée de paie et RH pour les entreprises tunisiennes.
+              </p>
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Produit</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Fonctionnalités</a></li>
-                <li><a href="#" className="hover:text-white transition">Tarification</a></li>
-                <li><a href="#" className="hover:text-white transition">Sécurité</a></li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Fonctionnalités
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Tarification
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Sécurité
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Entreprise</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">À Propos</a></li>
-                <li><a href="#" className="hover:text-white transition">Blog</a></li>
-                <li><a href="#" className="hover:text-white transition">Carrières</a></li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    À Propos
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Blog
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Carrières
+                  </a>
+                </li>
               </ul>
             </div>
             <div>
               <h4 className="font-bold text-white mb-4">Légal</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition">Confidentialité</a></li>
-                <li><a href="#" className="hover:text-white transition">Conditions</a></li>
-                <li><a href="#" className="hover:text-white transition">Contact</a></li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Confidentialité
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Conditions
+                  </a>
+                </li>
+                <li>
+                  <a href="#" className="hover:text-white transition">
+                    Contact
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
           <div className="border-t border-slate-800 pt-8">
-            <p className="text-center text-sm">© 2025 PayrollHub Tunisia. Tous droits réservés.</p>
+            <p className="text-center text-sm">
+              © 2025 PayrollHub Tunisia. Tous droits réservés.
+            </p>
           </div>
         </div>
       </footer>
