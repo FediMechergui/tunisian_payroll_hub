@@ -112,10 +112,17 @@ employeesRouter.post(
         req.user!.entrepriseId
       );
 
-      // Auto-create user account if requested
+      // Auto-create user account for the employee
+      // If createAccount is explicitly true, use provided email/password
+      // Otherwise, auto-create if employee has an email (generate a default password)
       let linkedUser = null;
-      if (createAccount && accountEmail && accountPassword) {
-        const existing = await storage.getUtilisateurByEmail(accountEmail);
+      const shouldCreateAccount =
+        createAccount || (emp.email && emp.email.trim() !== "");
+      const finalEmail = accountEmail || emp.email;
+      const finalPassword = accountPassword || `PH${emp.cin}!2025`;
+
+      if (shouldCreateAccount && finalEmail && finalEmail.trim() !== "") {
+        const existing = await storage.getUtilisateurByEmail(finalEmail);
         if (existing) {
           // Employee created but account already exists — warn but don't fail
           return res.status(201).json({
@@ -148,9 +155,9 @@ employeesRouter.post(
           });
         }
 
-        const motDePasseHash = await bcrypt.hash(accountPassword, 10);
+        const motDePasseHash = await bcrypt.hash(finalPassword, 10);
         linkedUser = await storage.createUtilisateur({
-          email: accountEmail,
+          email: finalEmail,
           motDePasseHash,
           nom: emp.nom,
           prenom: emp.prenom,

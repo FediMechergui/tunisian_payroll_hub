@@ -27,6 +27,7 @@ import Notifications from "./pages/app/Notifications";
 import ApiKeys from "./pages/app/ApiKeys";
 import PlatformDashboard from "./pages/app/PlatformDashboard";
 import DocumentRequests from "./pages/app/DocumentRequests";
+import Loans from "./pages/app/Loans";
 import { Loader2 } from "lucide-react";
 
 // Protected route wrapper — redirects to login if not authenticated
@@ -119,6 +120,13 @@ function Router() {
         {() => (
           <ProtectedRoute>
             <Leaves />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/app/prets">
+        {() => (
+          <ProtectedRoute>
+            <Loans />
           </ProtectedRoute>
         )}
       </Route>

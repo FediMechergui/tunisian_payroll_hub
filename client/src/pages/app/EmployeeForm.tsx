@@ -143,6 +143,9 @@ export default function EmployeeForm() {
     [MaritalStatus.VEUF]: "Veuf/Veuve",
   };
 
+  const watchContractType = watch("typeContrat");
+  const isSIVP = watchContractType === ContractType.SIVP;
+
   const step0Fields: (keyof CreateEmployeInput)[] = [
     "nom",
     "prenom",
@@ -462,13 +465,21 @@ export default function EmployeeForm() {
             <CardContent className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="matriculeCnss">Matricule CNSS *</Label>
+                  <Label htmlFor="matriculeCnss">
+                    Matricule CNSS {isSIVP ? "(Non requis pour SIVP)" : ""}
+                  </Label>
                   <Input
                     id="matriculeCnss"
                     {...register("matriculeCnss")}
                     className="mt-1"
-                    placeholder="CNS00XXXX"
+                    placeholder={isSIVP ? "N/A (contrat SIVP)" : "CNS00XXXX"}
+                    disabled={isSIVP}
                   />
+                  {isSIVP && (
+                    <p className="text-xs text-amber-500 mt-1">
+                      Les contrats SIVP ne sont pas affiliés à la CNSS
+                    </p>
+                  )}
                   <FieldError name="matriculeCnss" />
                 </div>
                 <div>
@@ -637,6 +648,16 @@ export default function EmployeeForm() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 mb-2">
+                <p className="text-sm text-emerald-700">
+                  <span className="font-medium">Création automatique : </span>
+                  Si l'employé a une adresse email, un compte sera
+                  automatiquement créé avec le mot de passe par défaut{" "}
+                  <code className="text-xs bg-emerald-100 px-1.5 py-0.5 rounded">
+                    PH{"{CIN}"}!2025
+                  </code>
+                </p>
+              </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
                 <input
                   type="checkbox"
@@ -650,12 +671,12 @@ export default function EmployeeForm() {
                   className="text-sm text-slate-700 cursor-pointer"
                 >
                   <span className="font-medium">
-                    Créer un compte utilisateur
+                    Personnaliser le compte utilisateur
                   </span>
                   <br />
                   <span className="text-xs text-slate-500">
-                    L'employé pourra se connecter à PayrollHub avec ses
-                    identifiants
+                    Définir manuellement l'email, le mot de passe et le rôle du
+                    compte
                   </span>
                 </label>
               </div>

@@ -4,8 +4,10 @@
 // ============================================================================
 
 import PDFDocument from "pdfkit";
+import fs from "fs";
+import path from "path";
 import type { Employe, Entreprise } from "../shared/types";
-import { DocumentType } from "../shared/types";
+import { DocumentType, SocialRegime } from "../shared/types";
 
 const PRIMARY = "#1e40af";
 const LIGHT_BG = "#f1f5f9";
@@ -26,9 +28,42 @@ function formatDate(dateStr: string): string {
 
 function numberToWords(n: number): string {
   // Simplified French number-to-words for amounts
-  const units = ["", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf"];
-  const teens = ["dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"];
-  const tens = ["", "", "vingt", "trente", "quarante", "cinquante", "soixante", "soixante-dix", "quatre-vingt", "quatre-vingt-dix"];
+  const units = [
+    "",
+    "un",
+    "deux",
+    "trois",
+    "quatre",
+    "cinq",
+    "six",
+    "sept",
+    "huit",
+    "neuf",
+  ];
+  const teens = [
+    "dix",
+    "onze",
+    "douze",
+    "treize",
+    "quatorze",
+    "quinze",
+    "seize",
+    "dix-sept",
+    "dix-huit",
+    "dix-neuf",
+  ];
+  const tens = [
+    "",
+    "",
+    "vingt",
+    "trente",
+    "quarante",
+    "cinquante",
+    "soixante",
+    "soixante-dix",
+    "quatre-vingt",
+    "quatre-vingt-dix",
+  ];
 
   if (n === 0) return "zéro";
   if (n < 10) return units[n];
@@ -61,23 +96,51 @@ function drawHeader(
   doc: InstanceType<typeof PDFDocument>,
   entreprise: Entreprise,
   title: string,
-  pageW: number,
+  pageW: number
 ): number {
   doc.rect(40, 40, pageW, 65).fill(PRIMARY);
-  doc.fillColor("#ffffff").fontSize(17).font("Helvetica-Bold")
+
+  // Logo (if available)
+  if (entreprise.logoUrl) {
+    const logoPath = path.resolve(entreprise.logoUrl.replace(/^\//, ""));
+    if (fs.existsSync(logoPath)) {
+      try {
+        doc.image(logoPath, 50, 46, { height: 50, fit: [80, 50] });
+      } catch {}
+    }
+  }
+
+  doc
+    .fillColor("#ffffff")
+    .fontSize(17)
+    .font("Helvetica-Bold")
     .text(title, 50, 52, { width: pageW - 20, align: "center" });
-  doc.fontSize(10).font("Helvetica")
+  doc
+    .fontSize(10)
+    .font("Helvetica")
     .text(entreprise.nom, 50, 74, { width: pageW - 20, align: "center" });
+
+  const regimeLabel =
+    entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS";
 
   let y = 120;
   // Company info
   doc.fillColor("#334155").fontSize(9).font("Helvetica");
   doc.text(`${entreprise.adresse}`, 40, y);
-  doc.text(`Matricule Fiscal: ${entreprise.matriculeFiscal}  |  Code CNSS: ${entreprise.codeCnss}`, 40, y + 12);
-  if (entreprise.telephone) doc.text(`Tél: ${entreprise.telephone}`, 40, y + 24);
+  doc.text(
+    `Matricule Fiscal: ${entreprise.matriculeFiscal}  |  Code ${regimeLabel}: ${entreprise.codeCnss}`,
+    40,
+    y + 12
+  );
+  if (entreprise.telephone)
+    doc.text(`Tél: ${entreprise.telephone}`, 40, y + 24);
 
   y += 45;
-  doc.moveTo(40, y).lineTo(40 + pageW, y).lineWidth(0.5).stroke(BORDER);
+  doc
+    .moveTo(40, y)
+    .lineTo(40 + pageW, y)
+    .lineWidth(0.5)
+    .stroke(BORDER);
   return y + 15;
 }
 
@@ -87,15 +150,27 @@ function drawHeader(
 function drawFooter(
   doc: InstanceType<typeof PDFDocument>,
   entreprise: Entreprise,
-  pageW: number,
+  pageW: number
 ): void {
   const y = 720;
-  doc.moveTo(40, y).lineTo(40 + pageW, y).lineWidth(0.5).stroke(BORDER);
-  doc.fillColor("#94a3b8").fontSize(7).font("Helvetica")
-    .text(`Document généré automatiquement par PayrollHub — ${entreprise.nom}`, 40, y + 8, {
-      width: pageW,
-      align: "center",
-    });
+  doc
+    .moveTo(40, y)
+    .lineTo(40 + pageW, y)
+    .lineWidth(0.5)
+    .stroke(BORDER);
+  doc
+    .fillColor("#94a3b8")
+    .fontSize(7)
+    .font("Helvetica")
+    .text(
+      `Document généré automatiquement par PayrollHub — ${entreprise.nom}`,
+      40,
+      y + 8,
+      {
+        width: pageW,
+        align: "center",
+      }
+    );
   doc.text(`Le ${formatDate(new Date().toISOString())}`, 40, y + 18, {
     width: pageW,
     align: "center",
@@ -107,7 +182,7 @@ function drawFooter(
 // ============================================================================
 export function generateAttestationTravail(
   employe: Employe,
-  entreprise: Entreprise,
+  entreprise: Entreprise
 ): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const pageW = 595.28 - 80;
@@ -121,8 +196,14 @@ export function generateAttestationTravail(
   doc.text(`Tunis, le ${today}`, 40, y, { width: pageW, align: "right" });
 
   y += 40;
-  doc.fontSize(12).font("Helvetica-Bold").fillColor(PRIMARY)
-    .text("Le Directeur des Ressources Humaines atteste que :", 40, y, { width: pageW, align: "center" });
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor(PRIMARY)
+    .text("Le Directeur des Ressources Humaines atteste que :", 40, y, {
+      width: pageW,
+      align: "center",
+    });
 
   y += 40;
   doc.fontSize(11).font("Helvetica").fillColor("#0f172a");
@@ -131,7 +212,7 @@ export function generateAttestationTravail(
     `M./Mme ${employe.prenom} ${employe.nom.toUpperCase()},`,
     `né(e) le ${formatDate(employe.dateNaissance)},`,
     `titulaire du CIN n° ${employe.cin},`,
-    `matricule CNSS : ${employe.matriculeCnss},`,
+    `matricule ${entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS"} : ${employe.matriculeCnss || "N/A"},`,
     "",
     `est employé(e) au sein de notre société ${entreprise.nom}`,
     `depuis le ${formatDate(employe.dateEmbauche)},`,
@@ -150,11 +231,17 @@ export function generateAttestationTravail(
   // Signature block
   y += 40;
   doc.fontSize(10).font("Helvetica-Bold").fillColor("#334155");
-  doc.text("Le Directeur des Ressources Humaines", 300, y, { width: 220, align: "center" });
+  doc.text("Le Directeur des Ressources Humaines", 300, y, {
+    width: 220,
+    align: "center",
+  });
   y += 35;
   doc.rect(320, y, 180, 0.5).fill(BORDER);
   y += 5;
-  doc.fontSize(8).font("Helvetica").fillColor("#64748b")
+  doc
+    .fontSize(8)
+    .font("Helvetica")
+    .fillColor("#64748b")
     .text("(Signature et cachet)", 300, y, { width: 220, align: "center" });
 
   drawFooter(doc, entreprise, pageW);
@@ -167,7 +254,7 @@ export function generateAttestationTravail(
 // ============================================================================
 export function generateAttestationSalaire(
   employe: Employe,
-  entreprise: Entreprise,
+  entreprise: Entreprise
 ): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const pageW = 595.28 - 80;
@@ -180,8 +267,14 @@ export function generateAttestationSalaire(
   doc.text(`Tunis, le ${today}`, 40, y, { width: pageW, align: "right" });
 
   y += 40;
-  doc.fontSize(12).font("Helvetica-Bold").fillColor(PRIMARY)
-    .text("Le soussigné atteste que :", 40, y, { width: pageW, align: "center" });
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor(PRIMARY)
+    .text("Le soussigné atteste que :", 40, y, {
+      width: pageW,
+      align: "center",
+    });
 
   y += 40;
   doc.fontSize(11).font("Helvetica").fillColor("#0f172a");
@@ -209,7 +302,10 @@ export function generateAttestationSalaire(
 
   y += 40;
   doc.fontSize(10).font("Helvetica-Bold").fillColor("#334155");
-  doc.text("Le Directeur des Ressources Humaines", 300, y, { width: 220, align: "center" });
+  doc.text("Le Directeur des Ressources Humaines", 300, y, {
+    width: 220,
+    align: "center",
+  });
   y += 35;
   doc.rect(320, y, 180, 0.5).fill(BORDER);
 
@@ -223,12 +319,19 @@ export function generateAttestationSalaire(
 // ============================================================================
 export function generateAttestationCNSS(
   employe: Employe,
-  entreprise: Entreprise,
+  entreprise: Entreprise
 ): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const pageW = 595.28 - 80;
 
-  let y = drawHeader(doc, entreprise, "ATTESTATION D'AFFILIATION CNSS", pageW);
+  const regimeLabel =
+    entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS";
+  let y = drawHeader(
+    doc,
+    entreprise,
+    `ATTESTATION D'AFFILIATION ${regimeLabel}`,
+    pageW
+  );
 
   y += 20;
   const today = formatDate(new Date().toISOString());
@@ -236,32 +339,48 @@ export function generateAttestationCNSS(
   doc.text(`Tunis, le ${today}`, 40, y, { width: pageW, align: "right" });
 
   y += 40;
-  doc.fontSize(12).font("Helvetica-Bold").fillColor(PRIMARY)
-    .text("Attestation d'affiliation à la CNSS", 40, y, { width: pageW, align: "center" });
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor(PRIMARY)
+    .text(
+      `Attestation d'affiliation à la ${regimeLabel === "CNRPS" ? "CNRPS" : "CNSS"}`,
+      40,
+      y,
+      { width: pageW, align: "center" }
+    );
 
   y += 40;
   doc.fontSize(11).font("Helvetica").fillColor("#0f172a");
 
   // Info box
-  doc.rect(50, y, pageW - 20, 120).lineWidth(0.5).stroke(BORDER);
+  doc
+    .rect(50, y, pageW - 20, 120)
+    .lineWidth(0.5)
+    .stroke(BORDER);
   doc.rect(50, y, pageW - 20, 120).fill(LIGHT_BG);
 
   y += 12;
   doc.fillColor("#0f172a").fontSize(10);
   const infos = [
     ["Employeur :", entreprise.nom],
-    ["Code CNSS Employeur :", entreprise.codeCnss],
+    [`Code ${regimeLabel} Employeur :`, entreprise.codeCnss],
     ["Matricule Fiscal :", entreprise.matriculeFiscal],
     ["", ""],
     ["Employé(e) :", `${employe.prenom} ${employe.nom.toUpperCase()}`],
     ["CIN :", employe.cin],
-    ["Matricule CNSS :", employe.matriculeCnss],
+    [`Matricule ${regimeLabel} :`, employe.matriculeCnss || "N/A"],
     ["Date d'embauche :", formatDate(employe.dateEmbauche)],
   ];
 
   for (const [label, value] of infos) {
-    if (label === "") { y += 8; continue; }
-    doc.font("Helvetica-Bold").text(label, 65, y, { continued: true, width: 180 });
+    if (label === "") {
+      y += 8;
+      continue;
+    }
+    doc
+      .font("Helvetica-Bold")
+      .text(label, 65, y, { continued: true, width: 180 });
     doc.font("Helvetica").text(` ${value}`, { width: 300 });
     y += 14;
   }
@@ -269,15 +388,20 @@ export function generateAttestationCNSS(
   y += 30;
   doc.fontSize(10).font("Helvetica").fillColor("#0f172a");
   doc.text(
-    "Nous attestons par la présente que l'employé(e) mentionné(e) ci-dessus est bien affilié(e) " +
-    "à la Caisse Nationale de Sécurité Sociale (CNSS) sous notre code employeur. " +
-    "Les cotisations sociales sont régulièrement versées conformément à la législation tunisienne en vigueur.",
-    60, y, { width: pageW - 40, lineGap: 4 },
+    `Nous attestons par la présente que l'employé(e) mentionné(e) ci-dessus est bien affilié(e) ` +
+      `à la ${regimeLabel === "CNRPS" ? "Caisse Nationale de Retraite et de Prévoyance Sociale (CNRPS)" : "Caisse Nationale de Sécurité Sociale (CNSS)"} sous notre code employeur. ` +
+      "Les cotisations sociales sont régulièrement versées conformément à la législation tunisienne en vigueur.",
+    60,
+    y,
+    { width: pageW - 40, lineGap: 4 }
   );
 
   y += 70;
   doc.fontSize(10).font("Helvetica-Bold").fillColor("#334155");
-  doc.text("Le Directeur des Ressources Humaines", 300, y, { width: 220, align: "center" });
+  doc.text("Le Directeur des Ressources Humaines", 300, y, {
+    width: 220,
+    align: "center",
+  });
   y += 35;
   doc.rect(320, y, 180, 0.5).fill(BORDER);
 
@@ -291,7 +415,7 @@ export function generateAttestationCNSS(
 // ============================================================================
 export function generateCertificatTravail(
   employe: Employe,
-  entreprise: Entreprise,
+  entreprise: Entreprise
 ): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const pageW = 595.28 - 80;
@@ -304,13 +428,21 @@ export function generateCertificatTravail(
   doc.text(`Tunis, le ${today}`, 40, y, { width: pageW, align: "right" });
 
   y += 40;
-  doc.fontSize(12).font("Helvetica-Bold").fillColor(PRIMARY)
-    .text("Le Directeur Général certifie que :", 40, y, { width: pageW, align: "center" });
+  doc
+    .fontSize(12)
+    .font("Helvetica-Bold")
+    .fillColor(PRIMARY)
+    .text("Le Directeur Général certifie que :", 40, y, {
+      width: pageW,
+      align: "center",
+    });
 
   y += 40;
   doc.fontSize(11).font("Helvetica").fillColor("#0f172a");
 
-  const dateFin = employe.dateFin ? formatDate(employe.dateFin) : formatDate(new Date().toISOString());
+  const dateFin = employe.dateFin
+    ? formatDate(employe.dateFin)
+    : formatDate(new Date().toISOString());
 
   const lines = [
     `M./Mme ${employe.prenom} ${employe.nom.toUpperCase()},`,
@@ -353,48 +485,111 @@ export function generateFichePaieAnnuelle(
   employe: Employe,
   entreprise: Entreprise,
   annee: number,
-  bulletins: { mois: number; brut: number; cnss: number; irpp: number; net: number }[],
+  bulletins: {
+    mois: number;
+    brut: number;
+    cnss: number;
+    irpp: number;
+    net: number;
+  }[]
 ): InstanceType<typeof PDFDocument> {
   const doc = new PDFDocument({ size: "A4", margin: 40 });
   const pageW = 595.28 - 80;
 
-  let y = drawHeader(doc, entreprise, `ÉTAT RÉCAPITULATIF ANNUEL ${annee}`, pageW);
+  let y = drawHeader(
+    doc,
+    entreprise,
+    `ÉTAT RÉCAPITULATIF ANNUEL ${annee}`,
+    pageW
+  );
 
   // Employee info
   y += 10;
-  doc.fillColor("#0f172a").fontSize(9).font("Helvetica-Bold")
+  doc
+    .fillColor("#0f172a")
+    .fontSize(9)
+    .font("Helvetica-Bold")
     .text("EMPLOYÉ(E)", 40, y);
   y += 14;
   doc.font("Helvetica").fontSize(9);
-  doc.text(`${employe.prenom} ${employe.nom.toUpperCase()}  |  CIN: ${employe.cin}  |  CNSS: ${employe.matriculeCnss}`, 40, y);
+  const regimeLabelAnnuel =
+    entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS";
+  doc.text(
+    `${employe.prenom} ${employe.nom.toUpperCase()}  |  CIN: ${employe.cin}  |  ${regimeLabelAnnuel}: ${employe.matriculeCnss || "N/A"}`,
+    40,
+    y
+  );
   y += 12;
-  doc.text(`Poste: ${employe.poste}  |  Département: ${employe.departement}`, 40, y);
+  doc.text(
+    `Poste: ${employe.poste}  |  Département: ${employe.departement}`,
+    40,
+    y
+  );
 
   y += 25;
   // Table header
   const cols = [40, 140, 230, 320, 410];
   const colW = [100, 90, 90, 90, 90];
-  const headers = ["Mois", "Brut (TND)", "CNSS (TND)", "IRPP (TND)", "Net (TND)"];
-  const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+  const headers = [
+    "Mois",
+    "Brut (TND)",
+    "CNSS (TND)",
+    "IRPP (TND)",
+    "Net (TND)",
+  ];
+  const MOIS = [
+    "Janvier",
+    "Février",
+    "Mars",
+    "Avril",
+    "Mai",
+    "Juin",
+    "Juillet",
+    "Août",
+    "Septembre",
+    "Octobre",
+    "Novembre",
+    "Décembre",
+  ];
 
   doc.rect(40, y, pageW, 20).fill(PRIMARY);
   doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
   for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], cols[i] + 4, y + 5, { width: colW[i] - 8, align: i === 0 ? "left" : "right" });
+    doc.text(headers[i], cols[i] + 4, y + 5, {
+      width: colW[i] - 8,
+      align: i === 0 ? "left" : "right",
+    });
   }
   y += 20;
 
-  let totalBrut = 0, totalCnss = 0, totalIrpp = 0, totalNet = 0;
+  let totalBrut = 0,
+    totalCnss = 0,
+    totalIrpp = 0,
+    totalNet = 0;
 
   for (const b of bulletins.sort((a, c) => a.mois - c.mois)) {
     const bg = bulletins.indexOf(b) % 2 === 0 ? LIGHT_BG : "#ffffff";
     doc.rect(40, y, pageW, 16).fill(bg);
     doc.fillColor("#0f172a").fontSize(8).font("Helvetica");
-    doc.text(MOIS[b.mois - 1] || String(b.mois), cols[0] + 4, y + 4, { width: colW[0] - 8 });
-    doc.text(fmt(b.brut), cols[1] + 4, y + 4, { width: colW[1] - 8, align: "right" });
-    doc.text(fmt(b.cnss), cols[2] + 4, y + 4, { width: colW[2] - 8, align: "right" });
-    doc.text(fmt(b.irpp), cols[3] + 4, y + 4, { width: colW[3] - 8, align: "right" });
-    doc.text(fmt(b.net), cols[4] + 4, y + 4, { width: colW[4] - 8, align: "right" });
+    doc.text(MOIS[b.mois - 1] || String(b.mois), cols[0] + 4, y + 4, {
+      width: colW[0] - 8,
+    });
+    doc.text(fmt(b.brut), cols[1] + 4, y + 4, {
+      width: colW[1] - 8,
+      align: "right",
+    });
+    doc.text(fmt(b.cnss), cols[2] + 4, y + 4, {
+      width: colW[2] - 8,
+      align: "right",
+    });
+    doc.text(fmt(b.irpp), cols[3] + 4, y + 4, {
+      width: colW[3] - 8,
+      align: "right",
+    });
+    doc.text(fmt(b.net), cols[4] + 4, y + 4, {
+      width: colW[4] - 8,
+      align: "right",
+    });
     totalBrut += b.brut;
     totalCnss += b.cnss;
     totalIrpp += b.irpp;
@@ -406,10 +601,22 @@ export function generateFichePaieAnnuelle(
   doc.rect(40, y, pageW, 20).fill("#1e293b");
   doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
   doc.text("TOTAL ANNUEL", cols[0] + 4, y + 5, { width: colW[0] - 8 });
-  doc.text(fmt(totalBrut), cols[1] + 4, y + 5, { width: colW[1] - 8, align: "right" });
-  doc.text(fmt(totalCnss), cols[2] + 4, y + 5, { width: colW[2] - 8, align: "right" });
-  doc.text(fmt(totalIrpp), cols[3] + 4, y + 5, { width: colW[3] - 8, align: "right" });
-  doc.text(fmt(totalNet), cols[4] + 4, y + 5, { width: colW[4] - 8, align: "right" });
+  doc.text(fmt(totalBrut), cols[1] + 4, y + 5, {
+    width: colW[1] - 8,
+    align: "right",
+  });
+  doc.text(fmt(totalCnss), cols[2] + 4, y + 5, {
+    width: colW[2] - 8,
+    align: "right",
+  });
+  doc.text(fmt(totalIrpp), cols[3] + 4, y + 5, {
+    width: colW[3] - 8,
+    align: "right",
+  });
+  doc.text(fmt(totalNet), cols[4] + 4, y + 5, {
+    width: colW[4] - 8,
+    align: "right",
+  });
 
   y += 35;
   doc.fillColor("#334155").fontSize(9).font("Helvetica");
@@ -417,7 +624,11 @@ export function generateFichePaieAnnuelle(
   y += 14;
   doc.text(`Retenue IRPP annuelle : ${fmt(totalIrpp)} TND`, 40, y);
   y += 14;
-  doc.text(`Total CNSS salariale : ${fmt(totalCnss)} TND`, 40, y);
+  doc.text(
+    `Total ${regimeLabelAnnuel} salariale : ${fmt(totalCnss)} TND`,
+    40,
+    y
+  );
 
   drawFooter(doc, entreprise, pageW);
   doc.end();

@@ -37,6 +37,18 @@ export enum ContractType {
   KARAMA = "Karama",
 }
 
+export enum SocialRegime {
+  CNSS = "cnss", // Privé
+  CNRPS = "cnrps", // Étatique (public)
+}
+
+export enum LoanStatus {
+  EN_ATTENTE = "en_attente",
+  EN_COURS = "en_cours",
+  REMBOURSE = "rembourse",
+  ANNULE = "annule",
+}
+
 export enum LeaveType {
   CONGE_PAYE = "conge_paye",
   MALADIE = "maladie",
@@ -68,6 +80,7 @@ export enum PayElementType {
   ACOMPTE = "acompte",
   SAISIE_SALAIRE = "saisie_salaire",
   REMBOURSEMENT = "remboursement",
+  RETENUE_PRET = "retenue_pret",
   CNSS_SALARIAL = "cnss_salarial",
   CNSS_PATRONAL = "cnss_patronal",
   IRPP = "irpp",
@@ -117,6 +130,7 @@ export enum DocumentType {
 
 export enum DeclarationType {
   CNSS_D17 = "cnss_d17",
+  CNRPS_D17 = "cnrps_d17",
   DGI_DEU = "dgi_deu",
   VIREMENT_BANCAIRE = "virement_bancaire",
 }
@@ -171,8 +185,11 @@ export interface Entreprise {
   telephone?: string;
   email?: string;
   regimeTravail: WorkRegime;
+  regimeSocial: SocialRegime;
   plan: PlanType;
   maxEmployees: number;
+  congesPayesParAn: number; // e.g. 12, 18, 26…
+  logoUrl?: string;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -206,7 +223,7 @@ export interface Employe {
   nbEnfants: number;
   residenceFiscale: string;
   // Employment info
-  matriculeCnss: string;
+  matriculeCnss?: string; // Optional for SIVP contracts (no CNSS rights)
   dateEmbauche: string;
   dateFin?: string;
   typeContrat: ContractType;
@@ -374,6 +391,27 @@ export interface BulletinPaie {
   dateGeneration: string;
 }
 
+// --- Loans ---
+
+export interface Loan {
+  id: string;
+  employeId: string;
+  entrepriseId: string;
+  montantTotal: number;
+  montantMensuel: number;
+  montantRembourse: number;
+  soldeRestant: number;
+  nbMensualites: number;
+  nbMensualitesPayees: number;
+  motif: string;
+  statut: LoanStatus;
+  dateDebut: string;
+  dateFin?: string;
+  approuvePar?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --- DTOs ---
 
 export interface LoginRequest {
@@ -397,7 +435,7 @@ export interface CreateEmployeRequest {
   situationFamiliale: MaritalStatus;
   nbEnfants: number;
   residenceFiscale: string;
-  matriculeCnss: string;
+  matriculeCnss?: string;
   dateEmbauche: string;
   typeContrat: ContractType;
   categoriePro: string;
@@ -434,7 +472,9 @@ export interface CreateEntrepriseRequest {
   telephone?: string;
   email?: string;
   regimeTravail: WorkRegime;
+  regimeSocial: SocialRegime;
   plan?: PlanType;
+  congesPayesParAn?: number;
 }
 
 export interface DashboardStats {

@@ -104,6 +104,38 @@ export const CATEGORIES_PRO = [
   "Hors Catégorie",
 ] as const;
 
+// Default leave days per year by Tunisian law
+export const DEFAULT_CONGES_PAYES_PAR_AN = 18; // 1.5 jours/mois (18 jours ouvrables/an)
+
+// Social regime labels
+export const SOCIAL_REGIME_LABELS = {
+  cnss: "CNSS - Régime Privé",
+  cnrps: "CNRPS - Régime Public",
+} as const;
+
+// CNRPS contribution rates for public sector employees
+export const CNRPS_RATES = {
+  salarial: 0.0915,  // 9.15% employee share
+  patronal: 0.1667,  // 16.67% employer share
+} as const;
+
+// CNSS contribution rates (for reference)
+export const CNSS_RATES = {
+  salarial: 0.0968,  // 9.68% employee share
+  patronal: 0.1707,  // 17.07% employer share
+} as const;
+
+// Loan motifs
+export const LOAN_MOTIFS = [
+  "Avance sur salaire",
+  "Prêt personnel",
+  "Prêt immobilier",
+  "Prêt véhicule",
+  "Frais médicaux",
+  "Frais de scolarité",
+  "Autre",
+] as const;
+
 // Tunisian banks
 export const BANQUES_TN = [
   "STB - Société Tunisienne de Banque",

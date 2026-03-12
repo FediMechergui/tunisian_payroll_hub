@@ -30,6 +30,7 @@ import { apiKeysRouter } from "./routes/api-keys";
 import { externalApiRouter } from "./routes/external-api";
 import { superExternalRouter } from "./routes/super-external";
 import { documentRequestsRouter } from "./routes/document-requests";
+import { loansRouter } from "./routes/loans";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -72,6 +73,7 @@ async function startServer() {
   app.use("/api/v1", externalApiRouter);
   app.use("/api/super-external", superExternalRouter);
   app.use("/api/document-requests", documentRequestsRouter);
+  app.use("/api/loans", loansRouter);
 
   // Serve static files from dist/public in production
   const staticPath =

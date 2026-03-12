@@ -35,15 +35,42 @@ const entrepriseSchema = new Schema(
   {
     nom: { type: String, required: true },
     adresse: { type: String, required: true },
-    matriculeFiscal: { type: String, required: true, unique: true, index: true },
+    matriculeFiscal: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
     codeCnss: { type: String, required: true },
-    secteurActivite: { type: String, enum: ["industrie", "services", "commerce", "agriculture", "btp", "tourisme", "sante", "education", "transport", "autre"], required: true },
+    secteurActivite: {
+      type: String,
+      enum: [
+        "industrie",
+        "services",
+        "commerce",
+        "agriculture",
+        "btp",
+        "tourisme",
+        "sante",
+        "education",
+        "transport",
+        "autre",
+      ],
+      required: true,
+    },
     telephone: String,
     email: String,
     regimeTravail: { type: String, enum: ["48h", "40h"], required: true },
+    regimeSocial: { type: String, enum: ["cnss", "cnrps"], default: "cnss" },
     // Plan system
-    plan: { type: String, enum: ["gratuit", "starter", "business", "enterprise"], default: "gratuit" },
+    plan: {
+      type: String,
+      enum: ["gratuit", "starter", "business", "enterprise"],
+      default: "gratuit",
+    },
     maxEmployees: { type: Number, default: 5 },
+    congesPayesParAn: { type: Number, default: 18 },
+    logoUrl: String,
     createdBy: { type: String, default: null }, // super_external_admin userId
   },
   { timestamps: true }
@@ -81,7 +108,10 @@ const utilisateurSchema = new Schema(
   { timestamps: true }
 );
 addIdTransform(utilisateurSchema);
-export const UtilisateurModel = mongoose.model("Utilisateur", utilisateurSchema);
+export const UtilisateurModel = mongoose.model(
+  "Utilisateur",
+  utilisateurSchema
+);
 
 // ============================================================================
 // Employe (Employee)
@@ -97,13 +127,21 @@ const employeSchema = new Schema(
     adresse: { type: String, required: true },
     telephone: String,
     email: String,
-    situationFamiliale: { type: String, enum: ["celibataire", "marie", "divorce", "veuf"], required: true },
+    situationFamiliale: {
+      type: String,
+      enum: ["celibataire", "marie", "divorce", "veuf"],
+      required: true,
+    },
     nbEnfants: { type: Number, default: 0 },
     residenceFiscale: { type: String, required: true },
-    matriculeCnss: { type: String, required: true },
+    matriculeCnss: { type: String, default: "" }, // Optional for SIVP contracts
     dateEmbauche: { type: String, required: true },
     dateFin: String,
-    typeContrat: { type: String, enum: ["CDI", "CDD", "SIVP", "Karama"], required: true },
+    typeContrat: {
+      type: String,
+      enum: ["CDI", "CDD", "SIVP", "Karama"],
+      required: true,
+    },
     categoriePro: { type: String, required: true },
     poste: { type: String, required: true },
     departement: { type: String, required: true },
@@ -117,7 +155,13 @@ const employeSchema = new Schema(
 );
 addIdTransform(employeSchema);
 employeSchema.index({ entrepriseId: 1, actif: 1 });
-employeSchema.index({ nom: "text", prenom: "text", cin: "text", poste: "text", departement: "text" });
+employeSchema.index({
+  nom: "text",
+  prenom: "text",
+  cin: "text",
+  poste: "text",
+  departement: "text",
+});
 export const EmployeModel = mongoose.model("Employe", employeSchema);
 
 // ============================================================================
@@ -141,7 +185,10 @@ const periodePaieSchema = new Schema(
 );
 addIdTransform(periodePaieSchema);
 periodePaieSchema.index({ entrepriseId: 1, annee: -1, mois: -1 });
-export const PeriodePaieModel = mongoose.model("PeriodePaie", periodePaieSchema);
+export const PeriodePaieModel = mongoose.model(
+  "PeriodePaie",
+  periodePaieSchema
+);
 
 // ============================================================================
 // ElementPaie (Pay Element)
@@ -158,7 +205,10 @@ const elementPaieSchema = new Schema({
   taux: Number,
 });
 addIdTransform(elementPaieSchema);
-export const ElementPaieModel = mongoose.model("ElementPaie", elementPaieSchema);
+export const ElementPaieModel = mongoose.model(
+  "ElementPaie",
+  elementPaieSchema
+);
 
 // ============================================================================
 // BulletinPaie (Payslip)
@@ -181,7 +231,10 @@ const bulletinPaieSchema = new Schema({
   dateGeneration: { type: String, required: true },
 });
 addIdTransform(bulletinPaieSchema);
-export const BulletinPaieModel = mongoose.model("BulletinPaie", bulletinPaieSchema);
+export const BulletinPaieModel = mongoose.model(
+  "BulletinPaie",
+  bulletinPaieSchema
+);
 
 // ============================================================================
 // Conge (Leave)
@@ -192,7 +245,14 @@ const congeSchema = new Schema(
     employeId: { type: String, required: true, index: true },
     typeConge: {
       type: String,
-      enum: ["conge_paye", "maladie", "maternite", "paternite", "sans_solde", "exceptionnel"],
+      enum: [
+        "conge_paye",
+        "maladie",
+        "maternite",
+        "paternite",
+        "sans_solde",
+        "exceptionnel",
+      ],
       required: true,
     },
     dateDebut: { type: String, required: true },
@@ -291,7 +351,10 @@ const documentRequestSchema = new Schema(
   { timestamps: true }
 );
 addIdTransform(documentRequestSchema);
-export const DocumentRequestModel = mongoose.model("DocumentRequest", documentRequestSchema);
+export const DocumentRequestModel = mongoose.model(
+  "DocumentRequest",
+  documentRequestSchema
+);
 
 // ============================================================================
 // UploadedFile (Metadata for uploaded files)
@@ -306,12 +369,19 @@ const uploadedFileSchema = new Schema(
     size: { type: Number, required: true },
     uploadedBy: { type: String, required: true, index: true },
     entrepriseId: { type: String, index: true },
-    category: { type: String, enum: ["paper", "document", "avatar", "other"], default: "paper" },
+    category: {
+      type: String,
+      enum: ["paper", "document", "avatar", "other"],
+      default: "paper",
+    },
   },
   { timestamps: true }
 );
 addIdTransform(uploadedFileSchema);
-export const UploadedFileModel = mongoose.model("UploadedFile", uploadedFileSchema);
+export const UploadedFileModel = mongoose.model(
+  "UploadedFile",
+  uploadedFileSchema
+);
 
 // ============================================================================
 // Declaration
@@ -320,12 +390,20 @@ export const UploadedFileModel = mongoose.model("UploadedFile", uploadedFileSche
 const declarationSchema = new Schema(
   {
     entrepriseId: { type: String, required: true, index: true },
-    type: { type: String, enum: ["cnss_d17", "dgi_deu", "virement_bancaire"], required: true },
+    type: {
+      type: String,
+      enum: ["cnss_d17", "cnrps_d17", "dgi_deu", "virement_bancaire"],
+      required: true,
+    },
     periodeDebut: { type: String, required: true },
     periodeFin: { type: String, required: true },
     trimestre: Number,
     annee: { type: Number, required: true },
-    statut: { type: String, enum: ["brouillon", "genere", "soumis"], default: "genere" },
+    statut: {
+      type: String,
+      enum: ["brouillon", "genere", "soumis"],
+      default: "genere",
+    },
     nomFichier: { type: String, required: true },
     nbEmployes: { type: Number, required: true },
     montantTotal: { type: Number, required: true },
@@ -334,7 +412,10 @@ const declarationSchema = new Schema(
   { timestamps: true }
 );
 addIdTransform(declarationSchema);
-export const DeclarationModel = mongoose.model("Declaration", declarationSchema);
+export const DeclarationModel = mongoose.model(
+  "Declaration",
+  declarationSchema
+);
 
 // ============================================================================
 // ReportConfig
@@ -345,7 +426,14 @@ const reportConfigSchema = new Schema(
     entrepriseId: { type: String, required: true, index: true },
     type: {
       type: String,
-      enum: ["masse_salariale", "effectifs", "charges_sociales", "conges", "cout_departement", "personnalise"],
+      enum: [
+        "masse_salariale",
+        "effectifs",
+        "charges_sociales",
+        "conges",
+        "cout_departement",
+        "personnalise",
+      ],
       required: true,
     },
     titre: { type: String, required: true },
@@ -357,7 +445,10 @@ const reportConfigSchema = new Schema(
   { timestamps: true }
 );
 addIdTransform(reportConfigSchema);
-export const ReportConfigModel = mongoose.model("ReportConfig", reportConfigSchema);
+export const ReportConfigModel = mongoose.model(
+  "ReportConfig",
+  reportConfigSchema
+);
 
 // ============================================================================
 // ParametreReglementaire (Regulatory Parameters)
@@ -372,7 +463,10 @@ const parametreSchema = new Schema({
   dateFinValidite: String,
 });
 addIdTransform(parametreSchema);
-export const ParametreModel = mongoose.model("ParametreReglementaire", parametreSchema);
+export const ParametreModel = mongoose.model(
+  "ParametreReglementaire",
+  parametreSchema
+);
 
 // ============================================================================
 // Notification
@@ -383,7 +477,11 @@ const notificationSchema = new Schema(
     entrepriseId: { type: String, required: true, index: true },
     destinataireId: { type: String, required: true, index: true },
     type: { type: String, required: true },
-    priorite: { type: String, enum: ["low", "medium", "high", "urgent"], default: "medium" },
+    priorite: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+      default: "medium",
+    },
     titre: { type: String, required: true },
     message: { type: String, required: true },
     lien: String,
@@ -393,7 +491,10 @@ const notificationSchema = new Schema(
 );
 addIdTransform(notificationSchema);
 notificationSchema.index({ destinataireId: 1, lu: 1 });
-export const NotificationModel = mongoose.model("Notification", notificationSchema);
+export const NotificationModel = mongoose.model(
+  "Notification",
+  notificationSchema
+);
 
 // ============================================================================
 // ApiKey
@@ -414,3 +515,33 @@ const apiKeySchema = new Schema(
 );
 addIdTransform(apiKeySchema);
 export const ApiKeyModel = mongoose.model("ApiKey", apiKeySchema);
+
+// ============================================================================
+// Pret (Loan)
+// ============================================================================
+
+const pretSchema = new Schema(
+  {
+    employeId: { type: String, required: true, index: true },
+    entrepriseId: { type: String, required: true, index: true },
+    montantTotal: { type: Number, required: true },
+    montantMensuel: { type: Number, required: true },
+    montantRembourse: { type: Number, default: 0 },
+    soldeRestant: { type: Number, required: true },
+    nbMensualites: { type: Number, required: true },
+    nbMensualitesPayees: { type: Number, default: 0 },
+    motif: { type: String, required: true },
+    statut: {
+      type: String,
+      enum: ["en_attente", "en_cours", "rembourse", "annule"],
+      default: "en_cours",
+    },
+    dateDebut: { type: String, required: true },
+    dateFin: String,
+    approuvePar: String,
+  },
+  { timestamps: true }
+);
+addIdTransform(pretSchema);
+pretSchema.index({ entrepriseId: 1, statut: 1 });
+export const PretModel = mongoose.model("Pret", pretSchema);

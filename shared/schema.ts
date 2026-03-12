@@ -9,12 +9,14 @@ import {
   DeclarationType,
   DocumentType,
   LeaveType,
+  LoanStatus,
   MaritalStatus,
   PayElementType,
   PayPeriodStatus,
   PlanType,
   ReportType,
   SectorType,
+  SocialRegime,
   UserRole,
   WorkRegime,
   ApiPermission,
@@ -40,10 +42,11 @@ export const signupSchema = z.object({
   // Company info
   companyName: z.string().min(2, "Le nom de l'entreprise est requis"),
   matriculeFiscal: z.string().min(5, "Le matricule fiscal est requis"),
-  codeCnss: z.string().min(5, "Le code CNSS est requis"),
+  codeCnss: z.string().min(5, "Le code CNSS/CNRPS est requis"),
   adresse: z.string().min(5, "L'adresse est requise"),
   secteurActivite: z.nativeEnum(SectorType),
   regimeTravail: z.nativeEnum(WorkRegime),
+  regimeSocial: z.nativeEnum(SocialRegime),
   telephone: z.string().optional().or(z.literal("")),
   plan: z.nativeEnum(PlanType),
 });
@@ -69,7 +72,7 @@ export const createEntrepriseSchema = z.object({
   nom: z.string().min(2, "Le nom de l'entreprise est requis"),
   adresse: z.string().min(5, "L'adresse est requise"),
   matriculeFiscal: z.string().min(5, "Le matricule fiscal est requis"),
-  codeCnss: z.string().min(5, "Le code CNSS est requis"),
+  codeCnss: z.string().min(5, "Le code CNSS/CNRPS est requis"),
   secteurActivite: z.nativeEnum(SectorType),
   telephone: z.string().optional(),
   email: z
@@ -78,7 +81,9 @@ export const createEntrepriseSchema = z.object({
     .optional()
     .or(z.literal("")),
   regimeTravail: z.nativeEnum(WorkRegime),
+  regimeSocial: z.nativeEnum(SocialRegime),
   plan: z.nativeEnum(PlanType).optional(),
+  congesPayesParAn: z.number().min(0).max(60).optional(),
 });
 
 // --- Employé ---
@@ -104,7 +109,7 @@ export const createEmployeSchema = z.object({
   residenceFiscale: z.string().min(2, "La résidence fiscale est requise"),
 
   // Employment information
-  matriculeCnss: z.string().min(5, "Le matricule CNSS est requis"),
+  matriculeCnss: z.string().optional().or(z.literal("")),
   dateEmbauche: z.string().min(1, "La date d'embauche est requise"),
   typeContrat: z.nativeEnum(ContractType),
   categoriePro: z.string().min(1, "La catégorie professionnelle est requise"),
@@ -224,17 +229,38 @@ export const createApiKeySchema = z.object({
 
 export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
 
+// --- Prêts (Loans) ---
+
+export const createLoanSchema = z.object({
+  employeId: z.string().min(1, "L'employé est requis"),
+  montantTotal: z.number().min(1, "Le montant doit être positif"),
+  nbMensualites: z
+    .number()
+    .min(1, "Le nombre de mensualités doit être au moins 1")
+    .max(120),
+  motif: z.string().min(2, "Le motif est requis"),
+  dateDebut: z.string().min(1, "La date de début est requise"),
+});
+
+export const updateLoanStatusSchema = z.object({
+  statut: z.nativeEnum(LoanStatus),
+});
+
+export type CreateLoanInput = z.infer<typeof createLoanSchema>;
+export type UpdateLoanStatusInput = z.infer<typeof updateLoanStatusSchema>;
+
 // --- Super External Admin: Company + Admin Creation ---
 
 export const createCompanyWithAdminSchema = z.object({
   companyName: z.string().min(2, "Le nom de l'entreprise est requis"),
   adresse: z.string().min(5, "L'adresse est requise"),
   matriculeFiscal: z.string().min(5, "Le matricule fiscal est requis"),
-  codeCnss: z.string().min(5, "Le code CNSS est requis"),
+  codeCnss: z.string().min(5, "Le code CNSS/CNRPS est requis"),
   secteurActivite: z.nativeEnum(SectorType),
   telephone: z.string().optional(),
   companyEmail: z.string().email().optional().or(z.literal("")),
   regimeTravail: z.nativeEnum(WorkRegime),
+  regimeSocial: z.nativeEnum(SocialRegime),
   plan: z.nativeEnum(PlanType),
   adminEmail: z.string().email("Email admin invalide"),
   adminPassword: z

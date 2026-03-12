@@ -21,6 +21,7 @@ import type {
   Notification,
   ApiKey,
   DocumentRequest,
+  Loan,
 } from "../shared/types";
 import {
   UserRole,
@@ -28,11 +29,13 @@ import {
   LeaveType,
   MaritalStatus,
   SectorType,
+  SocialRegime,
   WorkRegime,
   PayPeriodStatus,
   LeaveStatus,
   DeclarationStatus,
   PlanType,
+  LoanStatus,
   ApiPermission,
 } from "../shared/types";
 import { PLAN_LIMITS } from "../shared/const";
@@ -51,6 +54,7 @@ import {
   ParametreModel,
   NotificationModel,
   ApiKeyModel,
+  PretModel,
 } from "./models";
 
 // Internal user type with password hash
@@ -129,51 +133,437 @@ class MongoStorage {
 
     // 4. Seed regulatory parameters (2025 values)
     const params = [
-      { nom: "SMIG_48H", description: "SMIG RÃ©gime 48h/semaine", valeur: "528.320", categorie: "smig", dateDebutValidite: "2025-01-01" },
-      { nom: "SMIG_40H", description: "SMIG RÃ©gime 40h/semaine", valeur: "448.238", categorie: "smig", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_SAL_RETRAITE", description: "CNSS SalariÃ© - Retraite & InvaliditÃ©", valeur: "4.99", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_SAL_MALADIE", description: "CNSS SalariÃ© - Maladie & MaternitÃ©", valeur: "2.90", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_SAL_CONGE_MALADIE", description: "CNSS SalariÃ© - CongÃ© de Maladie", valeur: "0.79", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_SAL_TOTAL", description: "CNSS Total Part Salariale", valeur: "9.68", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_PAT_RETRAITE", description: "CNSS Patronal - Retraite & InvaliditÃ©", valeur: "8.01", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_PAT_MALADIE", description: "CNSS Patronal - Maladie & MaternitÃ©", valeur: "4.25", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_PAT_ACCIDENT", description: "CNSS Patronal - Accidents du Travail", valeur: "0.40", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_PAT_CONGE_MALADIE", description: "CNSS Patronal - CongÃ© de Maladie", valeur: "0.79", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "CNSS_PAT_TOTAL", description: "CNSS Total Part Patronale", valeur: "17.07", categorie: "cnss", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_1", description: "IRPP 0 - 5 000 TND", valeur: "0", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_2", description: "IRPP 5 001 - 10 000 TND", valeur: "15.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_3", description: "IRPP 10 001 - 20 000 TND", valeur: "25.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_4", description: "IRPP 20 001 - 30 000 TND", valeur: "30.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_5", description: "IRPP 30 001 - 40 000 TND", valeur: "33.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_6", description: "IRPP 40 001 - 50 000 TND", valeur: "36.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_7", description: "IRPP 50 001 - 70 000 TND", valeur: "38.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_TRANCHE_8", description: "IRPP Au-delÃ  de 70 000 TND", valeur: "40.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_FRAIS_PRO_TAUX", description: "Frais Professionnels (taux)", valeur: "10", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_FRAIS_PRO_PLAFOND", description: "Frais Professionnels (plafond annuel TND)", valeur: "2000", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_DEDUCTION_CHEF_FAMILLE", description: "DÃ©duction chef de famille (annuel TND)", valeur: "150", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "IRPP_DEDUCTION_ENFANT", description: "DÃ©duction par enfant (annuel TND)", valeur: "90", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "CSS_TAUX", description: "Contribution Sociale de SolidaritÃ© (2023-2025)", valeur: "0.5", categorie: "irpp", dateDebutValidite: "2025-01-01" },
-      { nom: "FOPROLOS_TAUX", description: "FOPROLOS (employeur)", valeur: "1", categorie: "autres", dateDebutValidite: "2025-01-01" },
-      { nom: "TFP_INDUSTRIE", description: "TFP Secteur Industrie", valeur: "2", categorie: "autres", dateDebutValidite: "2025-01-01" },
-      { nom: "TFP_SERVICES", description: "TFP Secteur Services", valeur: "1", categorie: "autres", dateDebutValidite: "2025-01-01" },
-      { nom: "HS_TAUX_25", description: "Heures supplÃ©mentaires +25%", valeur: "25", categorie: "heures_sup", dateDebutValidite: "2025-01-01" },
-      { nom: "HS_TAUX_50", description: "Heures supplÃ©mentaires +50%", valeur: "50", categorie: "heures_sup", dateDebutValidite: "2025-01-01" },
-      { nom: "HS_TAUX_75", description: "Heures supplÃ©mentaires +75%", valeur: "75", categorie: "heures_sup", dateDebutValidite: "2025-01-01" },
-      { nom: "HS_TAUX_NUIT", description: "Majoration travail de nuit (22h-6h)", valeur: "25", categorie: "heures_sup", dateDebutValidite: "2025-01-01" },
-      { nom: "CONGE_PAYE_JOURS_AN", description: "CongÃ©s payÃ©s (jours/an minimum)", valeur: "12", categorie: "conges", dateDebutValidite: "2025-01-01" },
-      { nom: "CONGE_MATERNITE_JOURS", description: "CongÃ© de maternitÃ© (jours)", valeur: "98", categorie: "conges", dateDebutValidite: "2025-01-01" },
-      { nom: "CONGE_PATERNITE_JOURS", description: "CongÃ© de paternitÃ© (jours â€” secteur privÃ©)", valeur: "2", categorie: "conges", dateDebutValidite: "2025-01-01" },
+      {
+        nom: "SMIG_48H",
+        description: "SMIG RÃ©gime 48h/semaine",
+        valeur: "528.320",
+        categorie: "smig",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "SMIG_40H",
+        description: "SMIG RÃ©gime 40h/semaine",
+        valeur: "448.238",
+        categorie: "smig",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_SAL_RETRAITE",
+        description: "CNSS SalariÃ© - Retraite & InvaliditÃ©",
+        valeur: "4.99",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_SAL_MALADIE",
+        description: "CNSS SalariÃ© - Maladie & MaternitÃ©",
+        valeur: "2.90",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_SAL_CONGE_MALADIE",
+        description: "CNSS SalariÃ© - CongÃ© de Maladie",
+        valeur: "0.79",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_SAL_TOTAL",
+        description: "CNSS Total Part Salariale",
+        valeur: "9.68",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_PAT_RETRAITE",
+        description: "CNSS Patronal - Retraite & InvaliditÃ©",
+        valeur: "8.01",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_PAT_MALADIE",
+        description: "CNSS Patronal - Maladie & MaternitÃ©",
+        valeur: "4.25",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_PAT_ACCIDENT",
+        description: "CNSS Patronal - Accidents du Travail",
+        valeur: "0.40",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_PAT_CONGE_MALADIE",
+        description: "CNSS Patronal - CongÃ© de Maladie",
+        valeur: "0.79",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNSS_PAT_TOTAL",
+        description: "CNSS Total Part Patronale",
+        valeur: "17.07",
+        categorie: "cnss",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_1",
+        description: "IRPP 0 - 5 000 TND",
+        valeur: "0",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_2",
+        description: "IRPP 5 001 - 10 000 TND",
+        valeur: "15.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_3",
+        description: "IRPP 10 001 - 20 000 TND",
+        valeur: "25.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_4",
+        description: "IRPP 20 001 - 30 000 TND",
+        valeur: "30.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_5",
+        description: "IRPP 30 001 - 40 000 TND",
+        valeur: "33.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_6",
+        description: "IRPP 40 001 - 50 000 TND",
+        valeur: "36.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_7",
+        description: "IRPP 50 001 - 70 000 TND",
+        valeur: "38.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_TRANCHE_8",
+        description: "IRPP Au-delÃ  de 70 000 TND",
+        valeur: "40.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_FRAIS_PRO_TAUX",
+        description: "Frais Professionnels (taux)",
+        valeur: "10",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_FRAIS_PRO_PLAFOND",
+        description: "Frais Professionnels (plafond annuel TND)",
+        valeur: "2000",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_DEDUCTION_CHEF_FAMILLE",
+        description: "DÃ©duction chef de famille (annuel TND)",
+        valeur: "150",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "IRPP_DEDUCTION_ENFANT",
+        description: "DÃ©duction par enfant (annuel TND)",
+        valeur: "90",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CSS_TAUX",
+        description: "Contribution Sociale de SolidaritÃ© (2023-2025)",
+        valeur: "0.5",
+        categorie: "irpp",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "FOPROLOS_TAUX",
+        description: "FOPROLOS (employeur)",
+        valeur: "1",
+        categorie: "autres",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "TFP_INDUSTRIE",
+        description: "TFP Secteur Industrie",
+        valeur: "2",
+        categorie: "autres",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "TFP_SERVICES",
+        description: "TFP Secteur Services",
+        valeur: "1",
+        categorie: "autres",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "HS_TAUX_25",
+        description: "Heures supplÃ©mentaires +25%",
+        valeur: "25",
+        categorie: "heures_sup",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "HS_TAUX_50",
+        description: "Heures supplÃ©mentaires +50%",
+        valeur: "50",
+        categorie: "heures_sup",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "HS_TAUX_75",
+        description: "Heures supplÃ©mentaires +75%",
+        valeur: "75",
+        categorie: "heures_sup",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "HS_TAUX_NUIT",
+        description: "Majoration travail de nuit (22h-6h)",
+        valeur: "25",
+        categorie: "heures_sup",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CONGE_PAYE_JOURS_AN",
+        description: "CongÃ©s payÃ©s (jours/an minimum)",
+        valeur: "12",
+        categorie: "conges",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CONGE_MATERNITE_JOURS",
+        description: "CongÃ© de maternitÃ© (jours)",
+        valeur: "98",
+        categorie: "conges",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CONGE_PATERNITE_JOURS",
+        description: "CongÃ© de paternitÃ© (jours â€” secteur privÃ©)",
+        valeur: "2",
+        categorie: "conges",
+        dateDebutValidite: "2025-01-01",
+      },
+      // CNRPS parameters (public sector)
+      {
+        nom: "CNRPS_SAL_RETRAITE",
+        description: "CNRPS Salarie - Retraite",
+        valeur: "4.74",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_SAL_MALADIE",
+        description: "CNRPS Salarie - Maladie",
+        valeur: "2.75",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_SAL_TOTAL",
+        description: "CNRPS Total Part Salariale",
+        valeur: "9.15",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_PAT_RETRAITE",
+        description: "CNRPS Patronal - Retraite",
+        valeur: "10.42",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_PAT_MALADIE",
+        description: "CNRPS Patronal - Maladie & Prevoyance Sociale",
+        valeur: "4.09",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_PAT_ACCIDENT",
+        description: "CNRPS Patronal - Accidents du Travail",
+        valeur: "0.40",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
+      {
+        nom: "CNRPS_PAT_TOTAL",
+        description: "CNRPS Total Part Patronale",
+        valeur: "16.67",
+        categorie: "cnrps",
+        dateDebutValidite: "2025-01-01",
+      },
     ];
     await ParametreModel.insertMany(params);
 
     // 5. Seed sample employees
     const sampleEmployees = [
-      { entrepriseId, nom: "Bouazizi", prenom: "Mohamed", cin: "07123456", dateNaissance: "1990-03-15", adresse: "Rue de la LibertÃ©, Tunis", telephone: "+216 22 123 456", email: "m.bouazizi@email.tn", situationFamiliale: MaritalStatus.MARIE, nbEnfants: 2, residenceFiscale: "Tunis", matriculeCnss: "CNS001234", dateEmbauche: "2020-09-01", typeContrat: ContractType.CDI, categoriePro: "CatÃ©gorie VII - Cadre", poste: "DÃ©veloppeur Senior", departement: "Informatique", salaireBase: 2500, iban: "TN59 1000 6035 1835 9847 8831", banque: "BIAT - Banque Internationale Arabe de Tunisie", actif: true },
-      { entrepriseId, nom: "Trabelsi", prenom: "Amira", cin: "08234567", dateNaissance: "1988-07-22", adresse: "Avenue Habib Bourguiba, Sousse", telephone: "+216 23 234 567", email: "a.trabelsi@email.tn", situationFamiliale: MaritalStatus.CELIBATAIRE, nbEnfants: 0, residenceFiscale: "Sousse", matriculeCnss: "CNS002345", dateEmbauche: "2019-03-15", typeContrat: ContractType.CDI, categoriePro: "CatÃ©gorie VIII - Cadre SupÃ©rieur", poste: "Directrice FinanciÃ¨re", departement: "Finance et ComptabilitÃ©", salaireBase: 3800, iban: "TN59 1000 6035 1835 9847 9942", banque: "STB - SociÃ©tÃ© Tunisienne de Banque", actif: true },
-      { entrepriseId, nom: "Jebali", prenom: "Youssef", cin: "09345678", dateNaissance: "1995-11-10", adresse: "Rue Ibn Khaldoun, Sfax", telephone: "+216 24 345 678", email: "y.jebali@email.tn", situationFamiliale: MaritalStatus.MARIE, nbEnfants: 1, residenceFiscale: "Sfax", matriculeCnss: "CNS003456", dateEmbauche: "2023-01-10", typeContrat: ContractType.CDD, categoriePro: "CatÃ©gorie V - Technicien SupÃ©rieur", poste: "Technicien Maintenance", departement: "Maintenance", salaireBase: 1200, iban: "TN59 1000 6035 1835 9847 1053", banque: "BNA - Banque Nationale Agricole", actif: true },
-      { entrepriseId, nom: "Hamdi", prenom: "Salma", cin: "10456789", dateNaissance: "1997-05-28", adresse: "Avenue de la RÃ©publique, Nabeul", telephone: "+216 25 456 789", email: "s.hamdi@email.tn", situationFamiliale: MaritalStatus.CELIBATAIRE, nbEnfants: 0, residenceFiscale: "Nabeul", matriculeCnss: "CNS004567", dateEmbauche: "2024-06-01", typeContrat: ContractType.SIVP, categoriePro: "CatÃ©gorie IV - Technicien", poste: "Assistante RH", departement: "Ressources Humaines", salaireBase: 800, iban: "TN59 1000 6035 1835 9847 2164", banque: "Attijari Bank", actif: true },
-      { entrepriseId, nom: "Chaabane", prenom: "Khalil", cin: "11567890", dateNaissance: "1985-12-03", adresse: "Rue de Marseille, Tunis", telephone: "+216 26 567 890", email: "k.chaabane@email.tn", situationFamiliale: MaritalStatus.MARIE, nbEnfants: 3, residenceFiscale: "Tunis", matriculeCnss: "CNS005678", dateEmbauche: "2015-04-20", typeContrat: ContractType.CDI, categoriePro: "CatÃ©gorie IX - Directeur", poste: "Directeur Commercial", departement: "Commercial", salaireBase: 5000, iban: "TN59 1000 6035 1835 9847 3275", banque: "Amen Bank", actif: true },
-      { entrepriseId, nom: "Mejri", prenom: "Nour", cin: "12678901", dateNaissance: "1993-09-17", adresse: "CitÃ© El Manar, Tunis", telephone: "+216 27 678 901", email: "n.mejri@email.tn", situationFamiliale: MaritalStatus.MARIE, nbEnfants: 1, residenceFiscale: "Tunis", matriculeCnss: "CNS006789", dateEmbauche: "2021-11-01", typeContrat: ContractType.CDI, categoriePro: "CatÃ©gorie VI - Agent de MaÃ®trise", poste: "Responsable QualitÃ©", departement: "QualitÃ©", salaireBase: 1800, iban: "TN59 1000 6035 1835 9847 4386", banque: "BH - Banque de l'Habitat", actif: true },
+      {
+        entrepriseId,
+        nom: "Bouazizi",
+        prenom: "Mohamed",
+        cin: "07123456",
+        dateNaissance: "1990-03-15",
+        adresse: "Rue de la LibertÃ©, Tunis",
+        telephone: "+216 22 123 456",
+        email: "m.bouazizi@email.tn",
+        situationFamiliale: MaritalStatus.MARIE,
+        nbEnfants: 2,
+        residenceFiscale: "Tunis",
+        matriculeCnss: "CNS001234",
+        dateEmbauche: "2020-09-01",
+        typeContrat: ContractType.CDI,
+        categoriePro: "CatÃ©gorie VII - Cadre",
+        poste: "DÃ©veloppeur Senior",
+        departement: "Informatique",
+        salaireBase: 2500,
+        iban: "TN59 1000 6035 1835 9847 8831",
+        banque: "BIAT - Banque Internationale Arabe de Tunisie",
+        actif: true,
+      },
+      {
+        entrepriseId,
+        nom: "Trabelsi",
+        prenom: "Amira",
+        cin: "08234567",
+        dateNaissance: "1988-07-22",
+        adresse: "Avenue Habib Bourguiba, Sousse",
+        telephone: "+216 23 234 567",
+        email: "a.trabelsi@email.tn",
+        situationFamiliale: MaritalStatus.CELIBATAIRE,
+        nbEnfants: 0,
+        residenceFiscale: "Sousse",
+        matriculeCnss: "CNS002345",
+        dateEmbauche: "2019-03-15",
+        typeContrat: ContractType.CDI,
+        categoriePro: "CatÃ©gorie VIII - Cadre SupÃ©rieur",
+        poste: "Directrice FinanciÃ¨re",
+        departement: "Finance et ComptabilitÃ©",
+        salaireBase: 3800,
+        iban: "TN59 1000 6035 1835 9847 9942",
+        banque: "STB - SociÃ©tÃ© Tunisienne de Banque",
+        actif: true,
+      },
+      {
+        entrepriseId,
+        nom: "Jebali",
+        prenom: "Youssef",
+        cin: "09345678",
+        dateNaissance: "1995-11-10",
+        adresse: "Rue Ibn Khaldoun, Sfax",
+        telephone: "+216 24 345 678",
+        email: "y.jebali@email.tn",
+        situationFamiliale: MaritalStatus.MARIE,
+        nbEnfants: 1,
+        residenceFiscale: "Sfax",
+        matriculeCnss: "CNS003456",
+        dateEmbauche: "2023-01-10",
+        typeContrat: ContractType.CDD,
+        categoriePro: "CatÃ©gorie V - Technicien SupÃ©rieur",
+        poste: "Technicien Maintenance",
+        departement: "Maintenance",
+        salaireBase: 1200,
+        iban: "TN59 1000 6035 1835 9847 1053",
+        banque: "BNA - Banque Nationale Agricole",
+        actif: true,
+      },
+      {
+        entrepriseId,
+        nom: "Hamdi",
+        prenom: "Salma",
+        cin: "10456789",
+        dateNaissance: "1997-05-28",
+        adresse: "Avenue de la RÃ©publique, Nabeul",
+        telephone: "+216 25 456 789",
+        email: "s.hamdi@email.tn",
+        situationFamiliale: MaritalStatus.CELIBATAIRE,
+        nbEnfants: 0,
+        residenceFiscale: "Nabeul",
+        matriculeCnss: "CNS004567",
+        dateEmbauche: "2024-06-01",
+        typeContrat: ContractType.SIVP,
+        categoriePro: "CatÃ©gorie IV - Technicien",
+        poste: "Assistante RH",
+        departement: "Ressources Humaines",
+        salaireBase: 800,
+        iban: "TN59 1000 6035 1835 9847 2164",
+        banque: "Attijari Bank",
+        actif: true,
+      },
+      {
+        entrepriseId,
+        nom: "Chaabane",
+        prenom: "Khalil",
+        cin: "11567890",
+        dateNaissance: "1985-12-03",
+        adresse: "Rue de Marseille, Tunis",
+        telephone: "+216 26 567 890",
+        email: "k.chaabane@email.tn",
+        situationFamiliale: MaritalStatus.MARIE,
+        nbEnfants: 3,
+        residenceFiscale: "Tunis",
+        matriculeCnss: "CNS005678",
+        dateEmbauche: "2015-04-20",
+        typeContrat: ContractType.CDI,
+        categoriePro: "CatÃ©gorie IX - Directeur",
+        poste: "Directeur Commercial",
+        departement: "Commercial",
+        salaireBase: 5000,
+        iban: "TN59 1000 6035 1835 9847 3275",
+        banque: "Amen Bank",
+        actif: true,
+      },
+      {
+        entrepriseId,
+        nom: "Mejri",
+        prenom: "Nour",
+        cin: "12678901",
+        dateNaissance: "1993-09-17",
+        adresse: "CitÃ© El Manar, Tunis",
+        telephone: "+216 27 678 901",
+        email: "n.mejri@email.tn",
+        situationFamiliale: MaritalStatus.MARIE,
+        nbEnfants: 1,
+        residenceFiscale: "Tunis",
+        matriculeCnss: "CNS006789",
+        dateEmbauche: "2021-11-01",
+        typeContrat: ContractType.CDI,
+        categoriePro: "CatÃ©gorie VI - Agent de MaÃ®trise",
+        poste: "Responsable QualitÃ©",
+        departement: "QualitÃ©",
+        salaireBase: 1800,
+        iban: "TN59 1000 6035 1835 9847 4386",
+        banque: "BH - Banque de l'Habitat",
+        actif: true,
+      },
     ];
 
     const employees = await EmployeModel.insertMany(sampleEmployees);
@@ -207,11 +597,57 @@ class MongoStorage {
 
     // 8. Seed sample leave requests
     await CongeModel.insertMany([
-      { employeId: employeeIds[0], typeConge: LeaveType.CONGE_PAYE, dateDebut: "2026-03-10", dateFin: "2026-03-14", nbJours: 5, statut: LeaveStatus.EN_ATTENTE, motif: "Vacances familiales" },
-      { employeId: employeeIds[1], typeConge: LeaveType.CONGE_PAYE, dateDebut: "2026-02-17", dateFin: "2026-02-21", nbJours: 5, statut: LeaveStatus.APPROUVE, motif: "CongÃ© annuel", approuvePar: rhId, dateApprobation: "2026-02-10T09:00:00.000Z" },
-      { employeId: employeeIds[2], typeConge: LeaveType.MALADIE, dateDebut: "2026-02-24", dateFin: "2026-02-26", nbJours: 3, statut: LeaveStatus.EN_ATTENTE, motif: "Certificat mÃ©dical fourni" },
-      { employeId: employeeIds[0], typeConge: LeaveType.CONGE_PAYE, dateDebut: "2026-01-06", dateFin: "2026-01-08", nbJours: 3, statut: LeaveStatus.APPROUVE, motif: "DÃ©mÃ©nagement", approuvePar: rhId, dateApprobation: "2025-12-28T14:00:00.000Z" },
-      { employeId: employeeIds[3], typeConge: LeaveType.EXCEPTIONNEL, dateDebut: "2026-03-01", dateFin: "2026-03-01", nbJours: 1, statut: LeaveStatus.REJETE, motif: "Rendez-vous administratif", approuvePar: rhId, dateApprobation: "2026-02-26T11:00:00.000Z" },
+      {
+        employeId: employeeIds[0],
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-03-10",
+        dateFin: "2026-03-14",
+        nbJours: 5,
+        statut: LeaveStatus.EN_ATTENTE,
+        motif: "Vacances familiales",
+      },
+      {
+        employeId: employeeIds[1],
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-02-17",
+        dateFin: "2026-02-21",
+        nbJours: 5,
+        statut: LeaveStatus.APPROUVE,
+        motif: "CongÃ© annuel",
+        approuvePar: rhId,
+        dateApprobation: "2026-02-10T09:00:00.000Z",
+      },
+      {
+        employeId: employeeIds[2],
+        typeConge: LeaveType.MALADIE,
+        dateDebut: "2026-02-24",
+        dateFin: "2026-02-26",
+        nbJours: 3,
+        statut: LeaveStatus.EN_ATTENTE,
+        motif: "Certificat mÃ©dical fourni",
+      },
+      {
+        employeId: employeeIds[0],
+        typeConge: LeaveType.CONGE_PAYE,
+        dateDebut: "2026-01-06",
+        dateFin: "2026-01-08",
+        nbJours: 3,
+        statut: LeaveStatus.APPROUVE,
+        motif: "DÃ©mÃ©nagement",
+        approuvePar: rhId,
+        dateApprobation: "2025-12-28T14:00:00.000Z",
+      },
+      {
+        employeId: employeeIds[3],
+        typeConge: LeaveType.EXCEPTIONNEL,
+        dateDebut: "2026-03-01",
+        dateFin: "2026-03-01",
+        nbJours: 1,
+        statut: LeaveStatus.REJETE,
+        motif: "Rendez-vous administratif",
+        approuvePar: rhId,
+        dateApprobation: "2026-02-26T11:00:00.000Z",
+      },
     ]);
 
     console.log("âœ… Database seeded successfully");
@@ -229,23 +665,39 @@ class MongoStorage {
     try {
       const doc = await EntrepriseModel.findById(id).lean();
       return doc ? this.toEntreprise(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async getEntrepriseByMatricule(matriculeFiscal: string): Promise<Entreprise | undefined> {
+  async getEntrepriseByMatricule(
+    matriculeFiscal: string
+  ): Promise<Entreprise | undefined> {
     const doc = await EntrepriseModel.findOne({ matriculeFiscal }).lean();
     return doc ? this.toEntreprise(doc) : undefined;
   }
 
-  async createEntreprise(data: Omit<Entreprise, "id" | "createdAt" | "updatedAt">): Promise<Entreprise> {
+  async createEntreprise(
+    data: Omit<Entreprise, "id" | "createdAt" | "updatedAt">
+  ): Promise<Entreprise> {
     const planKey = (data.plan || PlanType.GRATUIT) as keyof typeof PLAN_LIMITS;
     const maxEmp = PLAN_LIMITS[planKey]?.maxEmployees ?? 5;
-    const doc = await EntrepriseModel.create({ ...data, maxEmployees: data.maxEmployees ?? maxEmp });
+    const doc = await EntrepriseModel.create({
+      ...data,
+      maxEmployees: data.maxEmployees ?? maxEmp,
+    });
     return this.toEntreprise(doc.toObject());
   }
 
-  async updateEntreprise(id: string, data: Partial<Entreprise>): Promise<Entreprise | undefined> {
-    const doc = await EntrepriseModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  async updateEntreprise(
+    id: string,
+    data: Partial<Entreprise>
+  ): Promise<Entreprise | undefined> {
+    const doc = await EntrepriseModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    ).lean();
     return doc ? this.toEntreprise(doc) : undefined;
   }
 
@@ -260,18 +712,25 @@ class MongoStorage {
       telephone: d.telephone,
       email: d.email,
       regimeTravail: d.regimeTravail,
+      regimeSocial: d.regimeSocial || SocialRegime.CNSS,
       plan: d.plan || PlanType.GRATUIT,
       maxEmployees: d.maxEmployees ?? 5,
+      congesPayesParAn: d.congesPayesParAn ?? 18,
+      logoUrl: d.logoUrl,
       createdBy: d.createdBy,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
   // ======================================================================
   // Utilisateur
   // ======================================================================
-  async getUtilisateurs(entrepriseId?: string): Promise<Omit<StoredUser, "motDePasseHash">[]> {
+  async getUtilisateurs(
+    entrepriseId?: string
+  ): Promise<Omit<StoredUser, "motDePasseHash">[]> {
     const filter: any = {};
     if (entrepriseId) filter.entrepriseId = entrepriseId;
     const docs = await UtilisateurModel.find(filter).lean();
@@ -286,7 +745,9 @@ class MongoStorage {
     try {
       const doc = await UtilisateurModel.findById(id).lean();
       return doc ? this.toUser(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
   async getUtilisateurByEmail(email: string): Promise<StoredUser | undefined> {
@@ -294,13 +755,22 @@ class MongoStorage {
     return doc ? this.toUser(doc) : undefined;
   }
 
-  async createUtilisateur(data: Omit<StoredUser, "id" | "createdAt" | "updatedAt" | "actif">): Promise<StoredUser> {
+  async createUtilisateur(
+    data: Omit<StoredUser, "id" | "createdAt" | "updatedAt" | "actif">
+  ): Promise<StoredUser> {
     const doc = await UtilisateurModel.create({ ...data, actif: true });
     return this.toUser(doc.toObject());
   }
 
-  async updateUtilisateur(id: string, data: Partial<StoredUser>): Promise<StoredUser | undefined> {
-    const doc = await UtilisateurModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  async updateUtilisateur(
+    id: string,
+    data: Partial<StoredUser>
+  ): Promise<StoredUser | undefined> {
+    const doc = await UtilisateurModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    ).lean();
     return doc ? this.toUser(doc) : undefined;
   }
 
@@ -320,15 +790,20 @@ class MongoStorage {
       employeId: d.employeId,
       actif: d.actif,
       motDePasseHash: d.motDePasseHash,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
   // ======================================================================
   // EmployÃ©
   // ======================================================================
-  async getEmployes(entrepriseId?: string, search?: string): Promise<Employe[]> {
+  async getEmployes(
+    entrepriseId?: string,
+    search?: string
+  ): Promise<Employe[]> {
     const filter: any = { actif: true };
     if (entrepriseId) filter.entrepriseId = entrepriseId;
     if (search) {
@@ -350,16 +825,32 @@ class MongoStorage {
     try {
       const doc = await EmployeModel.findById(id).lean();
       return doc ? this.toEmploye(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createEmploye(data: Omit<Employe, "id" | "createdAt" | "updatedAt" | "actif">, entrepriseId: string): Promise<Employe> {
-    const doc = await EmployeModel.create({ ...data, entrepriseId, actif: true });
+  async createEmploye(
+    data: Omit<Employe, "id" | "createdAt" | "updatedAt" | "actif">,
+    entrepriseId: string
+  ): Promise<Employe> {
+    const doc = await EmployeModel.create({
+      ...data,
+      entrepriseId,
+      actif: true,
+    });
     return this.toEmploye(doc.toObject());
   }
 
-  async updateEmploye(id: string, data: Partial<Employe>): Promise<Employe | undefined> {
-    const doc = await EmployeModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  async updateEmploye(
+    id: string,
+    data: Partial<Employe>
+  ): Promise<Employe | undefined> {
+    const doc = await EmployeModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    ).lean();
     return doc ? this.toEmploye(doc) : undefined;
   }
 
@@ -398,8 +889,10 @@ class MongoStorage {
       iban: d.iban,
       banque: d.banque,
       actif: d.actif,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -410,28 +903,63 @@ class MongoStorage {
     const filter: any = {};
     if (categorie) filter.categorie = categorie;
     const docs = await ParametreModel.find(filter).lean();
-    return docs.map(d => ({ id: (d._id || d.id)?.toString(), nom: d.nom, description: d.description, valeur: d.valeur, categorie: d.categorie, dateDebutValidite: d.dateDebutValidite, dateFinValidite: d.dateFinValidite ?? undefined }));
+    return docs.map(d => ({
+      id: (d._id || d.id)?.toString(),
+      nom: d.nom,
+      description: d.description,
+      valeur: d.valeur,
+      categorie: d.categorie,
+      dateDebutValidite: d.dateDebutValidite,
+      dateFinValidite: d.dateFinValidite ?? undefined,
+    }));
   }
 
   async getParametre(id: string): Promise<ParametreReglementaire | undefined> {
     try {
       const doc = await ParametreModel.findById(id).lean();
       if (!doc) return undefined;
-      return { id: doc._id.toString(), nom: doc.nom, description: doc.description, valeur: doc.valeur, categorie: doc.categorie, dateDebutValidite: doc.dateDebutValidite, dateFinValidite: doc.dateFinValidite ?? undefined };
-    } catch { return undefined; }
+      return {
+        id: doc._id.toString(),
+        nom: doc.nom,
+        description: doc.description,
+        valeur: doc.valeur,
+        categorie: doc.categorie,
+        dateDebutValidite: doc.dateDebutValidite,
+        dateFinValidite: doc.dateFinValidite ?? undefined,
+      };
+    } catch {
+      return undefined;
+    }
   }
 
-  async updateParametre(id: string, data: Partial<ParametreReglementaire>): Promise<ParametreReglementaire | undefined> {
-    const doc = await ParametreModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  async updateParametre(
+    id: string,
+    data: Partial<ParametreReglementaire>
+  ): Promise<ParametreReglementaire | undefined> {
+    const doc = await ParametreModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    ).lean();
     if (!doc) return undefined;
-    return { id: doc._id.toString(), nom: doc.nom, description: doc.description, valeur: doc.valeur, categorie: doc.categorie, dateDebutValidite: doc.dateDebutValidite, dateFinValidite: doc.dateFinValidite ?? undefined };
+    return {
+      id: doc._id.toString(),
+      nom: doc.nom,
+      description: doc.description,
+      valeur: doc.valeur,
+      categorie: doc.categorie,
+      dateDebutValidite: doc.dateDebutValidite,
+      dateFinValidite: doc.dateFinValidite ?? undefined,
+    };
   }
 
   // ======================================================================
   // PÃ©riodes de Paie
   // ======================================================================
   async getPeriodesPaie(entrepriseId: string): Promise<PeriodePaie[]> {
-    const docs = await PeriodePaieModel.find({ entrepriseId }).sort({ annee: -1, mois: -1 }).lean();
+    const docs = await PeriodePaieModel.find({ entrepriseId })
+      .sort({ annee: -1, mois: -1 })
+      .lean();
     return docs.map(d => this.toPeriodePaie(d));
   }
 
@@ -439,21 +967,43 @@ class MongoStorage {
     try {
       const doc = await PeriodePaieModel.findById(id).lean();
       return doc ? this.toPeriodePaie(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async getPeriodePaieByMonth(entrepriseId: string, mois: number, annee: number): Promise<PeriodePaie | undefined> {
-    const doc = await PeriodePaieModel.findOne({ entrepriseId, mois, annee }).lean();
+  async getPeriodePaieByMonth(
+    entrepriseId: string,
+    mois: number,
+    annee: number
+  ): Promise<PeriodePaie | undefined> {
+    const doc = await PeriodePaieModel.findOne({
+      entrepriseId,
+      mois,
+      annee,
+    }).lean();
     return doc ? this.toPeriodePaie(doc) : undefined;
   }
 
-  async createPeriodePaie(data: Omit<PeriodePaie, "id" | "createdAt" | "updatedAt" | "statut">): Promise<PeriodePaie> {
-    const doc = await PeriodePaieModel.create({ ...data, statut: PayPeriodStatus.EN_COURS });
+  async createPeriodePaie(
+    data: Omit<PeriodePaie, "id" | "createdAt" | "updatedAt" | "statut">
+  ): Promise<PeriodePaie> {
+    const doc = await PeriodePaieModel.create({
+      ...data,
+      statut: PayPeriodStatus.EN_COURS,
+    });
     return this.toPeriodePaie(doc.toObject());
   }
 
-  async updatePeriodePaieStatut(id: string, statut: PayPeriodStatus): Promise<PeriodePaie | undefined> {
-    const doc = await PeriodePaieModel.findByIdAndUpdate(id, { statut }, { new: true }).lean();
+  async updatePeriodePaieStatut(
+    id: string,
+    statut: PayPeriodStatus
+  ): Promise<PeriodePaie | undefined> {
+    const doc = await PeriodePaieModel.findByIdAndUpdate(
+      id,
+      { statut },
+      { new: true }
+    ).lean();
     return doc ? this.toPeriodePaie(doc) : undefined;
   }
 
@@ -466,22 +1016,33 @@ class MongoStorage {
       dateDebut: d.dateDebut,
       dateFin: d.dateFin,
       statut: d.statut,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
   // ======================================================================
   // Ã‰lÃ©ments de Paie
   // ======================================================================
-  async getElementsPaie(periodePaieId: string, employeId?: string): Promise<ElementPaie[]> {
+  async getElementsPaie(
+    periodePaieId: string,
+    employeId?: string
+  ): Promise<ElementPaie[]> {
     const filter: any = { periodePaieId };
     if (employeId) filter.employeId = employeId;
     const docs = await ElementPaieModel.find(filter).lean();
     return docs.map(d => ({
-      id: (d._id || d.id)?.toString(), periodePaieId: d.periodePaieId, employeId: d.employeId,
-      type: d.type as any, libelle: d.libelle, montant: d.montant, estVariable: d.estVariable ?? true,
-      heures: d.heures ?? undefined, taux: d.taux ?? undefined,
+      id: (d._id || d.id)?.toString(),
+      periodePaieId: d.periodePaieId,
+      employeId: d.employeId,
+      type: d.type as any,
+      libelle: d.libelle,
+      montant: d.montant,
+      estVariable: d.estVariable ?? true,
+      heures: d.heures ?? undefined,
+      taux: d.taux ?? undefined,
     }));
   }
 
@@ -489,13 +1050,22 @@ class MongoStorage {
     const doc = await ElementPaieModel.create(data);
     const d = doc.toObject();
     return {
-      id: (d._id || d.id)?.toString(), periodePaieId: d.periodePaieId, employeId: d.employeId,
-      type: d.type as any, libelle: d.libelle, montant: d.montant, estVariable: d.estVariable ?? true,
-      heures: d.heures ?? undefined, taux: d.taux ?? undefined,
+      id: (d._id || d.id)?.toString(),
+      periodePaieId: d.periodePaieId,
+      employeId: d.employeId,
+      type: d.type as any,
+      libelle: d.libelle,
+      montant: d.montant,
+      estVariable: d.estVariable ?? true,
+      heures: d.heures ?? undefined,
+      taux: d.taux ?? undefined,
     };
   }
 
-  async deleteElementsPaie(periodePaieId: string, employeId?: string): Promise<number> {
+  async deleteElementsPaie(
+    periodePaieId: string,
+    employeId?: string
+  ): Promise<number> {
     const filter: any = { periodePaieId };
     if (employeId) filter.employeId = employeId;
     const result = await ElementPaieModel.deleteMany(filter);
@@ -514,11 +1084,15 @@ class MongoStorage {
     try {
       const doc = await BulletinPaieModel.findById(id).lean();
       return doc ? this.toBulletin(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
   async getBulletinsByEmploye(employeId: string): Promise<BulletinPaie[]> {
-    const docs = await BulletinPaieModel.find({ employeId }).sort({ dateGeneration: -1 }).lean();
+    const docs = await BulletinPaieModel.find({ employeId })
+      .sort({ dateGeneration: -1 })
+      .lean();
     return docs.map(d => this.toBulletin(d));
   }
 
@@ -568,8 +1142,12 @@ class MongoStorage {
   }
 
   async getCongesByEntreprise(entrepriseId: string): Promise<Conge[]> {
-    const empIds = (await EmployeModel.find({ entrepriseId, actif: true }, "_id").lean()).map(e => e._id.toString());
-    const docs = await CongeModel.find({ employeId: { $in: empIds } }).sort({ createdAt: -1 }).lean();
+    const empIds = (
+      await EmployeModel.find({ entrepriseId, actif: true }, "_id").lean()
+    ).map(e => e._id.toString());
+    const docs = await CongeModel.find({ employeId: { $in: empIds } })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => this.toConge(d));
   }
 
@@ -577,22 +1155,37 @@ class MongoStorage {
     try {
       const doc = await CongeModel.findById(id).lean();
       return doc ? this.toConge(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createConge(data: Omit<Conge, "id" | "statut" | "createdAt" | "updatedAt">): Promise<Conge> {
-    const doc = await CongeModel.create({ ...data, statut: LeaveStatus.EN_ATTENTE });
+  async createConge(
+    data: Omit<Conge, "id" | "statut" | "createdAt" | "updatedAt">
+  ): Promise<Conge> {
+    const doc = await CongeModel.create({
+      ...data,
+      statut: LeaveStatus.EN_ATTENTE,
+    });
     return this.toConge(doc.toObject());
   }
 
-  async updateCongeStatut(id: string, statut: LeaveStatus, approuvePar?: string): Promise<Conge | undefined> {
+  async updateCongeStatut(
+    id: string,
+    statut: LeaveStatus,
+    approuvePar?: string
+  ): Promise<Conge | undefined> {
     const now = new Date().toISOString();
     const update: any = { statut };
     if (statut === LeaveStatus.APPROUVE || statut === LeaveStatus.REJETE) {
       update.approuvePar = approuvePar;
       update.dateApprobation = now;
     }
-    const doc = await CongeModel.findByIdAndUpdate(id, { $set: update }, { new: true }).lean();
+    const doc = await CongeModel.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true }
+    ).lean();
     return doc ? this.toConge(doc) : undefined;
   }
 
@@ -601,8 +1194,18 @@ class MongoStorage {
     return !!result;
   }
 
-  async getLeaveBalance(employeId: string, year: number): Promise<{ droitAnnuel: number; consomme: number; enAttente: number; solde: number }> {
-    const param = await ParametreModel.findOne({ nom: "CONGE_PAYE_JOURS_AN" }).lean();
+  async getLeaveBalance(
+    employeId: string,
+    year: number
+  ): Promise<{
+    droitAnnuel: number;
+    consomme: number;
+    enAttente: number;
+    solde: number;
+  }> {
+    const param = await ParametreModel.findOne({
+      nom: "CONGE_PAYE_JOURS_AN",
+    }).lean();
     const droitAnnuel = param ? parseFloat(param.valeur) : 12;
 
     const leaves = await CongeModel.find({
@@ -611,8 +1214,12 @@ class MongoStorage {
       dateDebut: { $regex: `^${year}` },
     }).lean();
 
-    const consomme = leaves.filter(c => c.statut === LeaveStatus.APPROUVE).reduce((s, c) => s + c.nbJours, 0);
-    const enAttente = leaves.filter(c => c.statut === LeaveStatus.EN_ATTENTE).reduce((s, c) => s + c.nbJours, 0);
+    const consomme = leaves
+      .filter(c => c.statut === LeaveStatus.APPROUVE)
+      .reduce((s, c) => s + c.nbJours, 0);
+    const enAttente = leaves
+      .filter(c => c.statut === LeaveStatus.EN_ATTENTE)
+      .reduce((s, c) => s + c.nbJours, 0);
 
     return { droitAnnuel, consomme, enAttente, solde: droitAnnuel - consomme };
   }
@@ -631,8 +1238,10 @@ class MongoStorage {
       approuvePar: d.approuvePar,
       dateApprobation: d.dateApprobation,
       uploadedPapers: d.uploadedPapers || [],
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -640,12 +1249,16 @@ class MongoStorage {
   // Documents RH
   // ======================================================================
   async getDocuments(entrepriseId: string): Promise<DocumentRH[]> {
-    const docs = await DocumentRHModel.find({ entrepriseId }).sort({ dateCreation: -1 }).lean();
+    const docs = await DocumentRHModel.find({ entrepriseId })
+      .sort({ dateCreation: -1 })
+      .lean();
     return docs.map(d => this.toDocument(d));
   }
 
   async getDocumentsByEmploye(employeId: string): Promise<DocumentRH[]> {
-    const docs = await DocumentRHModel.find({ employeId }).sort({ dateCreation: -1 }).lean();
+    const docs = await DocumentRHModel.find({ employeId })
+      .sort({ dateCreation: -1 })
+      .lean();
     return docs.map(d => this.toDocument(d));
   }
 
@@ -653,11 +1266,18 @@ class MongoStorage {
     try {
       const doc = await DocumentRHModel.findById(id).lean();
       return doc ? this.toDocument(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createDocument(data: Omit<DocumentRH, "id" | "dateCreation">): Promise<DocumentRH> {
-    const doc = await DocumentRHModel.create({ ...data, dateCreation: new Date().toISOString() });
+  async createDocument(
+    data: Omit<DocumentRH, "id" | "dateCreation">
+  ): Promise<DocumentRH> {
+    const doc = await DocumentRHModel.create({
+      ...data,
+      dateCreation: new Date().toISOString(),
+    });
     return this.toDocument(doc.toObject());
   }
 
@@ -683,12 +1303,18 @@ class MongoStorage {
   // Document Requests (NEW)
   // ======================================================================
   async getDocumentRequests(entrepriseId: string): Promise<DocumentRequest[]> {
-    const docs = await DocumentRequestModel.find({ entrepriseId }).sort({ createdAt: -1 }).lean();
+    const docs = await DocumentRequestModel.find({ entrepriseId })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => this.toDocumentRequest(d));
   }
 
-  async getDocumentRequestsByEmploye(employeId: string): Promise<DocumentRequest[]> {
-    const docs = await DocumentRequestModel.find({ employeId }).sort({ createdAt: -1 }).lean();
+  async getDocumentRequestsByEmploye(
+    employeId: string
+  ): Promise<DocumentRequest[]> {
+    const docs = await DocumentRequestModel.find({ employeId })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => this.toDocumentRequest(d));
   }
 
@@ -696,16 +1322,30 @@ class MongoStorage {
     try {
       const doc = await DocumentRequestModel.findById(id).lean();
       return doc ? this.toDocumentRequest(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createDocumentRequest(data: Omit<DocumentRequest, "id" | "statut" | "createdAt" | "updatedAt">): Promise<DocumentRequest> {
-    const doc = await DocumentRequestModel.create({ ...data, statut: "en_attente" });
+  async createDocumentRequest(
+    data: Omit<DocumentRequest, "id" | "statut" | "createdAt" | "updatedAt">
+  ): Promise<DocumentRequest> {
+    const doc = await DocumentRequestModel.create({
+      ...data,
+      statut: "en_attente",
+    });
     return this.toDocumentRequest(doc.toObject());
   }
 
-  async updateDocumentRequest(id: string, data: Partial<DocumentRequest>): Promise<DocumentRequest | undefined> {
-    const doc = await DocumentRequestModel.findByIdAndUpdate(id, { $set: data }, { new: true }).lean();
+  async updateDocumentRequest(
+    id: string,
+    data: Partial<DocumentRequest>
+  ): Promise<DocumentRequest | undefined> {
+    const doc = await DocumentRequestModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    ).lean();
     return doc ? this.toDocumentRequest(doc) : undefined;
   }
 
@@ -728,8 +1368,10 @@ class MongoStorage {
       reviewComment: d.reviewComment,
       dateReview: d.dateReview,
       generatedDocumentId: d.generatedDocumentId,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -737,7 +1379,9 @@ class MongoStorage {
   // Declarations
   // ======================================================================
   async getDeclarations(entrepriseId: string): Promise<Declaration[]> {
-    const docs = await DeclarationModel.find({ entrepriseId }).sort({ createdAt: -1 }).lean();
+    const docs = await DeclarationModel.find({ entrepriseId })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => this.toDeclaration(d));
   }
 
@@ -745,16 +1389,30 @@ class MongoStorage {
     try {
       const doc = await DeclarationModel.findById(id).lean();
       return doc ? this.toDeclaration(doc) : undefined;
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createDeclaration(data: Omit<Declaration, "id" | "statut" | "createdAt" | "updatedAt">): Promise<Declaration> {
-    const doc = await DeclarationModel.create({ ...data, statut: DeclarationStatus.GENERE });
+  async createDeclaration(
+    data: Omit<Declaration, "id" | "statut" | "createdAt" | "updatedAt">
+  ): Promise<Declaration> {
+    const doc = await DeclarationModel.create({
+      ...data,
+      statut: DeclarationStatus.GENERE,
+    });
     return this.toDeclaration(doc.toObject());
   }
 
-  async updateDeclarationStatut(id: string, statut: DeclarationStatus): Promise<Declaration | undefined> {
-    const doc = await DeclarationModel.findByIdAndUpdate(id, { statut }, { new: true }).lean();
+  async updateDeclarationStatut(
+    id: string,
+    statut: DeclarationStatus
+  ): Promise<Declaration | undefined> {
+    const doc = await DeclarationModel.findByIdAndUpdate(
+      id,
+      { statut },
+      { new: true }
+    ).lean();
     return doc ? this.toDeclaration(doc) : undefined;
   }
 
@@ -777,8 +1435,10 @@ class MongoStorage {
       nbEmployes: d.nbEmployes,
       montantTotal: d.montantTotal,
       generePar: d.generePar,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 
@@ -786,12 +1446,23 @@ class MongoStorage {
   // Reports
   // ======================================================================
   async getReports(entrepriseId: string): Promise<ReportConfig[]> {
-    const docs = await ReportConfigModel.find({ entrepriseId }).sort({ createdAt: -1 }).lean();
+    const docs = await ReportConfigModel.find({ entrepriseId })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => ({
-      id: (d._id || d.id)?.toString(), entrepriseId: d.entrepriseId, type: d.type as any,
-      titre: d.titre, periodeDebut: d.periodeDebut, periodeFin: d.periodeFin,
-      filtres: d.filtres as any, generePar: d.generePar,
-      createdAt: String(d.createdAt ? (d.createdAt as any).toISOString?.() ?? d.createdAt : new Date().toISOString()),
+      id: (d._id || d.id)?.toString(),
+      entrepriseId: d.entrepriseId,
+      type: d.type as any,
+      titre: d.titre,
+      periodeDebut: d.periodeDebut,
+      periodeFin: d.periodeFin,
+      filtres: d.filtres as any,
+      generePar: d.generePar,
+      createdAt: String(
+        d.createdAt
+          ? ((d.createdAt as any).toISOString?.() ?? d.createdAt)
+          : new Date().toISOString()
+      ),
     }));
   }
 
@@ -800,22 +1471,44 @@ class MongoStorage {
       const doc = await ReportConfigModel.findById(id).lean();
       if (!doc) return undefined;
       return {
-        id: (doc._id || doc.id)?.toString(), entrepriseId: doc.entrepriseId, type: doc.type as any,
-        titre: doc.titre, periodeDebut: doc.periodeDebut, periodeFin: doc.periodeFin,
-        filtres: doc.filtres as any, generePar: doc.generePar,
-        createdAt: String(doc.createdAt ? (doc.createdAt as any).toISOString?.() ?? doc.createdAt : new Date().toISOString()),
+        id: (doc._id || doc.id)?.toString(),
+        entrepriseId: doc.entrepriseId,
+        type: doc.type as any,
+        titre: doc.titre,
+        periodeDebut: doc.periodeDebut,
+        periodeFin: doc.periodeFin,
+        filtres: doc.filtres as any,
+        generePar: doc.generePar,
+        createdAt: String(
+          doc.createdAt
+            ? ((doc.createdAt as any).toISOString?.() ?? doc.createdAt)
+            : new Date().toISOString()
+        ),
       };
-    } catch { return undefined; }
+    } catch {
+      return undefined;
+    }
   }
 
-  async createReport(data: Omit<ReportConfig, "id" | "createdAt">): Promise<ReportConfig> {
+  async createReport(
+    data: Omit<ReportConfig, "id" | "createdAt">
+  ): Promise<ReportConfig> {
     const doc = await ReportConfigModel.create(data);
     const d = doc.toObject();
     return {
-      id: (d._id || d.id)?.toString(), entrepriseId: d.entrepriseId, type: d.type as any,
-      titre: d.titre, periodeDebut: d.periodeDebut, periodeFin: d.periodeFin,
-      filtres: d.filtres as any, generePar: d.generePar,
-      createdAt: String(d.createdAt ? (d.createdAt as any).toISOString?.() ?? d.createdAt : new Date().toISOString()),
+      id: (d._id || d.id)?.toString(),
+      entrepriseId: d.entrepriseId,
+      type: d.type as any,
+      titre: d.titre,
+      periodeDebut: d.periodeDebut,
+      periodeFin: d.periodeFin,
+      filtres: d.filtres as any,
+      generePar: d.generePar,
+      createdAt: String(
+        d.createdAt
+          ? ((d.createdAt as any).toISOString?.() ?? d.createdAt)
+          : new Date().toISOString()
+      ),
     };
   }
 
@@ -830,32 +1523,58 @@ class MongoStorage {
   async getDashboardStats(entrepriseId: string): Promise<DashboardStats> {
     const emps = await this.getEmployes(entrepriseId);
     const contratsActifs = emps.filter(e => e.actif).length;
-    const congesEnAttente = await CongeModel.countDocuments({ statut: LeaveStatus.EN_ATTENTE });
+    const congesEnAttente = await CongeModel.countDocuments({
+      statut: LeaveStatus.EN_ATTENTE,
+    });
 
     // Group by department
     const deptMap = new Map<string, number>();
-    for (const e of emps) deptMap.set(e.departement, (deptMap.get(e.departement) || 0) + 1);
-    const employesParDepartement = Array.from(deptMap.entries()).map(([departement, count]) => ({ departement, count }));
+    for (const e of emps)
+      deptMap.set(e.departement, (deptMap.get(e.departement) || 0) + 1);
+    const employesParDepartement = Array.from(deptMap.entries()).map(
+      ([departement, count]) => ({ departement, count })
+    );
 
     // Group by contract type
     const contratMap = new Map<ContractType, number>();
-    for (const e of emps) contratMap.set(e.typeContrat, (contratMap.get(e.typeContrat) || 0) + 1);
-    const employesParContrat = Array.from(contratMap.entries()).map(([type, count]) => ({ type, count }));
+    for (const e of emps)
+      contratMap.set(e.typeContrat, (contratMap.get(e.typeContrat) || 0) + 1);
+    const employesParContrat = Array.from(contratMap.entries()).map(
+      ([type, count]) => ({ type, count })
+    );
 
     const masseSalariale = emps.reduce((sum, e) => sum + e.salaireBase, 0);
 
-    const months = ["Jan", "FÃ©v", "Mar", "Avr", "Mai", "Jun", "Jul", "AoÃ»", "Sep", "Oct", "Nov", "DÃ©c"];
+    const months = [
+      "Jan",
+      "FÃ©v",
+      "Mar",
+      "Avr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "AoÃ»",
+      "Sep",
+      "Oct",
+      "Nov",
+      "DÃ©c",
+    ];
     const currentMonth = new Date().getMonth();
-    const evolutionMasseSalariale = months.slice(0, currentMonth + 1).map((mois, i) => ({
-      mois, montant: masseSalariale * (0.92 + i * 0.008 + Math.random() * 0.02),
-    }));
+    const evolutionMasseSalariale = months
+      .slice(0, currentMonth + 1)
+      .map((mois, i) => ({
+        mois,
+        montant: masseSalariale * (0.92 + i * 0.008 + Math.random() * 0.02),
+      }));
 
     // Payroll analytics
     const periodes = await this.getPeriodesPaie(entrepriseId);
     let payroll: DashboardStats["payroll"] = undefined;
 
     if (periodes.length > 0) {
-      const sorted = [...periodes].sort((a, b) => a.annee !== b.annee ? b.annee - a.annee : b.mois - a.mois);
+      const sorted = [...periodes].sort((a, b) =>
+        a.annee !== b.annee ? b.annee - a.annee : b.mois - a.mois
+      );
       const latest = sorted[0];
       const latestBulletins = await this.getBulletins(latest.id);
 
@@ -863,11 +1582,23 @@ class MongoStorage {
       const totalNet = latestBulletins.reduce((s, b) => s + b.netAPayer, 0);
       const totalCnss = latestBulletins.reduce((s, b) => s + b.cnssSalarial, 0);
       const totalIrpp = latestBulletins.reduce((s, b) => s + b.irpp, 0);
-      const coutEmployeur = latestBulletins.reduce((s, b) => s + b.coutTotalEmployeur, 0);
-      const periodesCalculees = periodes.filter(p => p.statut !== PayPeriodStatus.EN_COURS).length;
-      const periodesFinalisees = periodes.filter(p => p.statut === PayPeriodStatus.FINALISEE).length;
+      const coutEmployeur = latestBulletins.reduce(
+        (s, b) => s + b.coutTotalEmployeur,
+        0
+      );
+      const periodesCalculees = periodes.filter(
+        p => p.statut !== PayPeriodStatus.EN_COURS
+      ).length;
+      const periodesFinalisees = periodes.filter(
+        p => p.statut === PayPeriodStatus.FINALISEE
+      ).length;
 
-      const evolutionPayroll: { mois: string; brut: number; net: number; coutEmployeur: number }[] = [];
+      const evolutionPayroll: {
+        mois: string;
+        brut: number;
+        net: number;
+        coutEmployeur: number;
+      }[] = [];
       for (const p of sorted.reverse()) {
         const buls = await this.getBulletins(p.id);
         evolutionPayroll.push({
@@ -878,65 +1609,122 @@ class MongoStorage {
         });
       }
 
-      payroll = { dernierePeriode: `${months[latest.mois - 1]} ${latest.annee}`, totalBrut, totalNet, totalCnss, totalIrpp, coutEmployeur, periodesCalculees, periodesFinalisees, evolutionPayroll };
+      payroll = {
+        dernierePeriode: `${months[latest.mois - 1]} ${latest.annee}`,
+        totalBrut,
+        totalNet,
+        totalCnss,
+        totalIrpp,
+        coutEmployeur,
+        periodesCalculees,
+        periodesFinalisees,
+        evolutionPayroll,
+      };
     }
 
     // Advanced analytics
     const now2 = new Date();
-    const turnover = months.map((mois, idx) => {
-      const entrees = emps.filter(e => { const d = new Date(e.dateEmbauche); return d.getMonth() === idx && d.getFullYear() === now2.getFullYear(); }).length;
-      const sorties = emps.filter(e => { if (!e.dateFin) return false; const d = new Date(e.dateFin); return d.getMonth() === idx && d.getFullYear() === now2.getFullYear(); }).length;
-      return { mois, entrees, sorties };
-    }).slice(0, currentMonth + 1);
+    const turnover = months
+      .map((mois, idx) => {
+        const entrees = emps.filter(e => {
+          const d = new Date(e.dateEmbauche);
+          return d.getMonth() === idx && d.getFullYear() === now2.getFullYear();
+        }).length;
+        const sorties = emps.filter(e => {
+          if (!e.dateFin) return false;
+          const d = new Date(e.dateFin);
+          return d.getMonth() === idx && d.getFullYear() === now2.getFullYear();
+        }).length;
+        return { mois, entrees, sorties };
+      })
+      .slice(0, currentMonth + 1);
 
     const allConges = await this.getCongesByEntreprise(entrepriseId);
     const deptLeaves = new Map<string, { total: number; jours: number }>();
     for (const e of emps) {
-      if (!deptLeaves.has(e.departement)) deptLeaves.set(e.departement, { total: 0, jours: 0 });
+      if (!deptLeaves.has(e.departement))
+        deptLeaves.set(e.departement, { total: 0, jours: 0 });
       const dl = deptLeaves.get(e.departement)!;
       dl.total++;
-      const empLeaves = allConges.filter(c => c.employeId === e.id && c.statut === LeaveStatus.APPROUVE);
+      const empLeaves = allConges.filter(
+        c => c.employeId === e.id && c.statut === LeaveStatus.APPROUVE
+      );
       dl.jours += empLeaves.reduce((s, c) => s + c.nbJours, 0);
     }
-    const absenteisme = Array.from(deptLeaves.entries()).map(([departement, d]) => ({
-      departement, taux: d.total > 0 ? Math.round((d.jours / (d.total * 22) * 100) * 10) / 10 : 0,
-    }));
+    const absenteisme = Array.from(deptLeaves.entries()).map(
+      ([departement, d]) => ({
+        departement,
+        taux:
+          d.total > 0
+            ? Math.round((d.jours / (d.total * 22)) * 100 * 10) / 10
+            : 0,
+      })
+    );
 
-    const coutParDepartement = Array.from(deptMap.entries()).map(([departement]) => {
-      const deptEmps = emps.filter(e => e.departement === departement);
-      const brut = deptEmps.reduce((s, e) => s + e.salaireBase, 0);
-      const charges = brut * 0.2807;
-      return { departement, brut, charges, total: brut + charges };
-    });
+    const coutParDepartement = Array.from(deptMap.entries()).map(
+      ([departement]) => {
+        const deptEmps = emps.filter(e => e.departement === departement);
+        const brut = deptEmps.reduce((s, e) => s + e.salaireBase, 0);
+        const charges = brut * 0.2807;
+        return { departement, brut, charges, total: brut + charges };
+      }
+    );
 
     const salairesTranches = [
-      { min: 0, max: 500, label: "< 500" }, { min: 500, max: 1000, label: "500-1000" },
-      { min: 1000, max: 2000, label: "1000-2000" }, { min: 2000, max: 3000, label: "2000-3000" },
-      { min: 3000, max: 5000, label: "3000-5000" }, { min: 5000, max: Infinity, label: "> 5000" },
+      { min: 0, max: 500, label: "< 500" },
+      { min: 500, max: 1000, label: "500-1000" },
+      { min: 1000, max: 2000, label: "1000-2000" },
+      { min: 2000, max: 3000, label: "2000-3000" },
+      { min: 3000, max: 5000, label: "3000-5000" },
+      { min: 5000, max: Infinity, label: "> 5000" },
     ];
     const repartitionSalaires = salairesTranches.map(t => ({
-      tranche: t.label, count: emps.filter(e => e.salaireBase >= t.min && e.salaireBase < t.max).length,
+      tranche: t.label,
+      count: emps.filter(e => e.salaireBase >= t.min && e.salaireBase < t.max)
+        .length,
     }));
 
     const anciennete = [
-      { min: 0, max: 1, label: "< 1 an" }, { min: 1, max: 3, label: "1-3 ans" },
-      { min: 3, max: 5, label: "3-5 ans" }, { min: 5, max: 10, label: "5-10 ans" },
+      { min: 0, max: 1, label: "< 1 an" },
+      { min: 1, max: 3, label: "1-3 ans" },
+      { min: 3, max: 5, label: "3-5 ans" },
+      { min: 5, max: 10, label: "5-10 ans" },
       { min: 10, max: Infinity, label: "> 10 ans" },
     ];
     const ancienneteDistribution = anciennete.map(t => ({
-      tranche: t.label, count: emps.filter(e => {
-        const years = (now2.getTime() - new Date(e.dateEmbauche).getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+      tranche: t.label,
+      count: emps.filter(e => {
+        const years =
+          (now2.getTime() - new Date(e.dateEmbauche).getTime()) /
+          (365.25 * 24 * 60 * 60 * 1000);
         return years >= t.min && years < t.max;
       }).length,
     }));
 
     const docsGen = await DocumentRHModel.countDocuments({ entrepriseId });
-    const declEnAttente = await DeclarationModel.countDocuments({ entrepriseId, statut: DeclarationStatus.GENERE });
+    const declEnAttente = await DeclarationModel.countDocuments({
+      entrepriseId,
+      statut: DeclarationStatus.GENERE,
+    });
 
     return {
-      totalEmployes: emps.length, contratsActifs, congesEnAttente, masseSalariale,
-      employesParDepartement, employesParContrat, evolutionMasseSalariale, payroll,
-      analytics: { turnover, absenteisme, coutParDepartement, repartitionSalaires, ancienneteDistribution, documentsGeneres: docsGen, declarationsEnAttente: declEnAttente },
+      totalEmployes: emps.length,
+      contratsActifs,
+      congesEnAttente,
+      masseSalariale,
+      employesParDepartement,
+      employesParContrat,
+      evolutionMasseSalariale,
+      payroll,
+      analytics: {
+        turnover,
+        absenteisme,
+        coutParDepartement,
+        repartitionSalaires,
+        ancienneteDistribution,
+        documentsGeneres: docsGen,
+        declarationsEnAttente: declEnAttente,
+      },
     };
   }
 
@@ -950,54 +1738,190 @@ class MongoStorage {
   }
 
   // ======================================================================
+  // Loans (Prêts)
+  // ======================================================================
+  async getLoans(entrepriseId: string, employeId?: string): Promise<Loan[]> {
+    const filter: any = { entrepriseId };
+    if (employeId) filter.employeId = employeId;
+    const docs = await PretModel.find(filter).sort({ createdAt: -1 }).lean();
+    return docs.map(d => this.toLoan(d));
+  }
+
+  async getLoan(id: string): Promise<Loan | undefined> {
+    try {
+      const doc = await PretModel.findById(id).lean();
+      return doc ? this.toLoan(doc) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  async getActiveLoans(employeId: string): Promise<Loan[]> {
+    const docs = await PretModel.find({
+      employeId,
+      statut: LoanStatus.EN_COURS,
+    }).lean();
+    return docs.map(d => this.toLoan(d));
+  }
+
+  async createLoan(data: {
+    employeId: string;
+    entrepriseId: string;
+    montantTotal: number;
+    nbMensualites: number;
+    motif: string;
+    dateDebut: string;
+    approuvePar?: string;
+    statut?: LoanStatus;
+  }): Promise<Loan> {
+    const montantMensuel =
+      Math.round((data.montantTotal / data.nbMensualites) * 1000) / 1000;
+    const doc = await PretModel.create({
+      ...data,
+      montantMensuel,
+      montantRembourse: 0,
+      soldeRestant: data.montantTotal,
+      nbMensualitesPayees: 0,
+      statut: data.statut || LoanStatus.EN_COURS,
+    });
+    return this.toLoan(doc.toObject());
+  }
+
+  async recordLoanPayment(
+    loanId: string,
+    montant: number
+  ): Promise<Loan | undefined> {
+    const loan = await PretModel.findById(loanId);
+    if (!loan) return undefined;
+    loan.montantRembourse += montant;
+    loan.soldeRestant = Math.max(0, loan.montantTotal - loan.montantRembourse);
+    loan.nbMensualitesPayees += 1;
+    if (loan.soldeRestant <= 0) {
+      loan.statut = "rembourse";
+      loan.dateFin = new Date().toISOString();
+    }
+    await loan.save();
+    return this.toLoan(loan.toObject());
+  }
+
+  async updateLoanStatus(
+    id: string,
+    statut: LoanStatus
+  ): Promise<Loan | undefined> {
+    const update: any = { statut };
+    if (statut === LoanStatus.ANNULE || statut === LoanStatus.REMBOURSE) {
+      update.dateFin = new Date().toISOString();
+    }
+    const doc = await PretModel.findByIdAndUpdate(
+      id,
+      { $set: update },
+      { new: true }
+    ).lean();
+    return doc ? this.toLoan(doc) : undefined;
+  }
+
+  private toLoan(d: any): Loan {
+    return {
+      id: (d._id || d.id)?.toString(),
+      employeId: d.employeId,
+      entrepriseId: d.entrepriseId,
+      montantTotal: d.montantTotal,
+      montantMensuel: d.montantMensuel,
+      montantRembourse: d.montantRembourse,
+      soldeRestant: d.soldeRestant,
+      nbMensualites: d.nbMensualites,
+      nbMensualitesPayees: d.nbMensualitesPayees,
+      motif: d.motif,
+      statut: d.statut,
+      dateDebut: d.dateDebut,
+      dateFin: d.dateFin,
+      approuvePar: d.approuvePar,
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  // ======================================================================
   // Notifications
   // ======================================================================
   async getNotifications(userId: string): Promise<Notification[]> {
-    const docs = await NotificationModel.find({ destinataireId: userId }).sort({ createdAt: -1 }).lean();
+    const docs = await NotificationModel.find({ destinataireId: userId })
+      .sort({ createdAt: -1 })
+      .lean();
     return docs.map(d => this.toNotification(d));
   }
 
   async getUnreadCount(userId: string): Promise<number> {
-    return NotificationModel.countDocuments({ destinataireId: userId, lu: false });
+    return NotificationModel.countDocuments({
+      destinataireId: userId,
+      lu: false,
+    });
   }
 
-  async createNotification(data: Omit<Notification, "id" | "lu" | "createdAt">): Promise<Notification> {
+  async createNotification(
+    data: Omit<Notification, "id" | "lu" | "createdAt">
+  ): Promise<Notification> {
     const doc = await NotificationModel.create({ ...data, lu: false });
     return this.toNotification(doc.toObject());
   }
 
   async markNotificationRead(id: string, userId: string): Promise<boolean> {
-    const result = await NotificationModel.findOneAndUpdate({ _id: id, destinataireId: userId }, { lu: true });
+    const result = await NotificationModel.findOneAndUpdate(
+      { _id: id, destinataireId: userId },
+      { lu: true }
+    );
     return !!result;
   }
 
   async markAllNotificationsRead(userId: string): Promise<number> {
-    const result = await NotificationModel.updateMany({ destinataireId: userId, lu: false }, { lu: true });
+    const result = await NotificationModel.updateMany(
+      { destinataireId: userId, lu: false },
+      { lu: true }
+    );
     return result.modifiedCount;
   }
 
   async deleteNotification(id: string, userId: string): Promise<boolean> {
-    const result = await NotificationModel.findOneAndDelete({ _id: id, destinataireId: userId });
+    const result = await NotificationModel.findOneAndDelete({
+      _id: id,
+      destinataireId: userId,
+    });
     return !!result;
   }
 
   async broadcastNotification(
     entrepriseId: string,
     minRole: UserRole,
-    data: Omit<Notification, "id" | "lu" | "createdAt" | "destinataireId" | "entrepriseId">
+    data: Omit<
+      Notification,
+      "id" | "lu" | "createdAt" | "destinataireId" | "entrepriseId"
+    >
   ): Promise<Notification[]> {
     const roleLevel: Record<string, number> = {
-      super_external_admin: 7, super_admin: 6, admin_rh: 5, admin_paie: 4, comptable: 3, manager: 2, employe: 1,
+      super_external_admin: 7,
+      super_admin: 6,
+      admin_rh: 5,
+      admin_paie: 4,
+      comptable: 3,
+      manager: 2,
+      employe: 1,
     };
     const minLevel = roleLevel[minRole] || 0;
     const users = await UtilisateurModel.find({
-      entrepriseId, actif: true,
+      entrepriseId,
+      actif: true,
     }).lean();
 
     const filtered = users.filter(u => (roleLevel[u.role] || 0) >= minLevel);
     const notifications: Notification[] = [];
     for (const u of filtered) {
-      const n = await this.createNotification({ ...data, entrepriseId, destinataireId: u._id.toString() });
+      const n = await this.createNotification({
+        ...data,
+        entrepriseId,
+        destinataireId: u._id.toString(),
+      });
       notifications.push(n);
     }
     return notifications;
@@ -1014,7 +1938,8 @@ class MongoStorage {
       message: d.message,
       lien: d.lien,
       lu: d.lu,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
     };
   }
 
@@ -1035,7 +1960,12 @@ class MongoStorage {
     return doc ? this.toApiKey(doc) : undefined;
   }
 
-  async createApiKey(data: { entrepriseId: string; nom: string; permissions: string[]; limiteRequetes: number }): Promise<{ apiKey: Omit<ApiKey, "cle">; rawKey: string }> {
+  async createApiKey(data: {
+    entrepriseId: string;
+    nom: string;
+    permissions: string[];
+    limiteRequetes: number;
+  }): Promise<{ apiKey: Omit<ApiKey, "cle">; rawKey: string }> {
     const id = uuidv4();
     const secret = uuidv4().replace(/-/g, "");
     const rawKey = `ph_${id.substring(0, 8)}_${secret}`;
@@ -1057,13 +1987,22 @@ class MongoStorage {
   }
 
   async updateApiKeyLastUsed(id: string): Promise<void> {
-    await ApiKeyModel.findByIdAndUpdate(id, { derniereUtilisation: new Date().toISOString() });
+    await ApiKeyModel.findByIdAndUpdate(id, {
+      derniereUtilisation: new Date().toISOString(),
+    });
   }
 
-  async toggleApiKey(id: string, entrepriseId: string): Promise<ApiKey | undefined> {
+  async toggleApiKey(
+    id: string,
+    entrepriseId: string
+  ): Promise<ApiKey | undefined> {
     const doc = await ApiKeyModel.findOne({ _id: id, entrepriseId }).lean();
     if (!doc) return undefined;
-    const updated = await ApiKeyModel.findByIdAndUpdate(id, { actif: !doc.actif }, { new: true }).lean();
+    const updated = await ApiKeyModel.findByIdAndUpdate(
+      id,
+      { actif: !doc.actif },
+      { new: true }
+    ).lean();
     if (!updated) return undefined;
     const k = this.toApiKey(updated);
     const { cle, ...safe } = k;
@@ -1071,12 +2010,18 @@ class MongoStorage {
   }
 
   async deleteApiKey(id: string, entrepriseId: string): Promise<boolean> {
-    const result = await ApiKeyModel.findOneAndDelete({ _id: id, entrepriseId });
+    const result = await ApiKeyModel.findOneAndDelete({
+      _id: id,
+      entrepriseId,
+    });
     return !!result;
   }
 
   // Rate limiting (kept in-memory)
-  checkRateLimit(keyId: string, limit: number): { allowed: boolean; remaining: number; resetAt: number } {
+  checkRateLimit(
+    keyId: string,
+    limit: number
+  ): { allowed: boolean; remaining: number; resetAt: number } {
     const now = Date.now();
     let entry = rateLimits.get(keyId);
     if (!entry || now > entry.resetAt) {
@@ -1099,8 +2044,10 @@ class MongoStorage {
       actif: d.actif,
       derniereUtilisation: d.derniereUtilisation,
       limiteRequetes: d.limiteRequetes,
-      createdAt: d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
-      updatedAt: d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
+      createdAt:
+        d.createdAt?.toISOString?.() || d.createdAt || new Date().toISOString(),
+      updatedAt:
+        d.updatedAt?.toISOString?.() || d.updatedAt || new Date().toISOString(),
     };
   }
 }

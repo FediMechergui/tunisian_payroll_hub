@@ -16,6 +16,7 @@ declarationsRouter.use(requireMinRole(UserRole.ADMIN_PAIE));
 
 const DECL_LABELS: Record<DeclarationType, string> = {
   [DeclarationType.CNSS_D17]: "CNSS D-17",
+  [DeclarationType.CNRPS_D17]: "CNRPS D-17",
   [DeclarationType.DGI_DEU]: "DGI DEU",
   [DeclarationType.VIREMENT_BANCAIRE]: "Virement Bancaire",
 };
@@ -48,7 +49,11 @@ declarationsRouter.post("/generate", async (req: Request, res: Response) => {
   const periodes = await storage.getPeriodesPaie(entrepriseId);
 
   try {
-    if (type === DeclarationType.CNSS_D17) {
+    if (
+      type === DeclarationType.CNSS_D17 ||
+      type === DeclarationType.CNRPS_D17
+    ) {
+      const regime = type === DeclarationType.CNRPS_D17 ? "CNRPS" : "CNSS";
       // Get bulletins for the trimester
       const trimestreMonths = trimestre
         ? [
@@ -75,7 +80,7 @@ declarationsRouter.post("/generate", async (req: Request, res: Response) => {
         });
       }
 
-      const nomFichier = `CNSS_D17_T${trimestre || 0}_${annee}.pdf`;
+      const nomFichier = `${regime}_D17_T${trimestre || 0}_${annee}.pdf`;
       const totalCnss = allBulletins.reduce(
         (s, b) => s + b.cnssSalarial + b.cnssPatronal,
         0
@@ -99,7 +104,8 @@ declarationsRouter.post("/generate", async (req: Request, res: Response) => {
         employes,
         allBulletins,
         trimestre || 1,
-        annee
+        annee,
+        regime
       );
 
       res.setHeader("Content-Type", "application/pdf");

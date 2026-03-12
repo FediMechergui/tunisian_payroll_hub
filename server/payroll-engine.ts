@@ -16,33 +16,44 @@ import {
   PayElementType,
   MaritalStatus,
   SectorType,
+  ContractType,
+  SocialRegime,
 } from "../shared/types";
 
 // --- Regulatory Parameter Helper ---
 
 interface PayrollParams {
-  cnssEmployeTotal: number;      // 9.68%
-  cnssPatronalTotal: number;     // 17.07%
+  cnssEmployeTotal: number; // 9.68% (CNSS) or 9.15% (CNRPS)
+  cnssPatronalTotal: number; // 17.07% (CNSS) or 16.67% (CNRPS)
   irppBrackets: { min: number; max: number; rate: number }[];
-  fraisProTaux: number;          // 10%
-  fraisProPlafond: number;       // 2000 TND/year
-  deductionChefFamille: number;  // 150 TND/year
-  deductionEnfant: number;       // 90 TND/year
-  foprolosTaux: number;          // 1%
-  tfpIndustrie: number;          // 2%
-  tfpServices: number;           // 1%
+  fraisProTaux: number; // 10%
+  fraisProPlafond: number; // 2000 TND/year
+  deductionChefFamille: number; // 150 TND/year
+  deductionEnfant: number; // 90 TND/year
+  foprolosTaux: number; // 1%
+  tfpIndustrie: number; // 2%
+  tfpServices: number; // 1%
 }
 
-async function loadParams(): Promise<PayrollParams> {
+async function loadParams(
+  regimeSocial: SocialRegime = SocialRegime.CNSS
+): Promise<PayrollParams> {
   const params = await storage.getParametres();
   const get = (nom: string): number => {
     const p = params.find((x: any) => x.nom === nom);
     return p ? parseFloat(p.valeur) : 0;
   };
 
+  // Use CNRPS rates for public sector enterprises
+  const isCNRPS = regimeSocial === SocialRegime.CNRPS;
+
   return {
-    cnssEmployeTotal: get("CNSS_SAL_TOTAL"),
-    cnssPatronalTotal: get("CNSS_PAT_TOTAL"),
+    cnssEmployeTotal: isCNRPS
+      ? get("CNRPS_SAL_TOTAL") || 9.15
+      : get("CNSS_SAL_TOTAL"),
+    cnssPatronalTotal: isCNRPS
+      ? get("CNRPS_PAT_TOTAL") || 16.67
+      : get("CNSS_PAT_TOTAL"),
     irppBrackets: [
       { min: 0, max: 5000, rate: get("IRPP_TRANCHE_1") },
       { min: 5000, max: 10000, rate: get("IRPP_TRANCHE_2") },
@@ -115,8 +126,13 @@ export async function calculatePayroll(
   periodePaieId: string,
   variableElements: Omit<ElementPaie, "id" | "periodePaieId">[]
 ): Promise<PayrollCalculationResult> {
-  const p = await loadParams();
+  const p = await loadParams(entreprise.regimeSocial);
   const now = new Date().toISOString();
+
+  // Check if SIVP contract — no CNSS/CNRPS contributions
+  const isSIVP = employe.typeContrat === ContractType.SIVP;
+  const regimeLabel =
+    entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS";
 
   // -----------------------------------------------------------------------
   // 1. Collect all pay elements
@@ -151,6 +167,7 @@ export async function calculatePayroll(
       ![
         PayElementType.ACOMPTE,
         PayElementType.SAISIE_SALAIRE,
+        PayElementType.RETENUE_PRET,
         PayElementType.CNSS_SALARIAL,
         PayElementType.CNSS_PATRONAL,
         PayElementType.IRPP,
@@ -168,33 +185,39 @@ export async function calculatePayroll(
     deductionsFromBrut.reduce((s, e) => s + e.montant, 0);
 
   // -----------------------------------------------------------------------
-  // 3. CNSS
+  // 3. CNSS / CNRPS (skipped for SIVP contracts)
   // -----------------------------------------------------------------------
-  const cnssSalarial = round(salaireBrut * (p.cnssEmployeTotal / 100));
-  const cnssPatronal = round(salaireBrut * (p.cnssPatronalTotal / 100));
+  const cnssSalarial = isSIVP
+    ? 0
+    : round(salaireBrut * (p.cnssEmployeTotal / 100));
+  const cnssPatronal = isSIVP
+    ? 0
+    : round(salaireBrut * (p.cnssPatronalTotal / 100));
 
-  // Add CNSS elements to the bulletin
-  elements.push({
-    id: uuidv4(),
-    periodePaieId,
-    employeId: employe.id,
-    type: PayElementType.CNSS_SALARIAL,
-    libelle: `CNSS Salariale (${p.cnssEmployeTotal}%)`,
-    montant: cnssSalarial,
-    estVariable: false,
-    taux: p.cnssEmployeTotal,
-  });
+  if (!isSIVP) {
+    // Add CNSS/CNRPS elements to the bulletin
+    elements.push({
+      id: uuidv4(),
+      periodePaieId,
+      employeId: employe.id,
+      type: PayElementType.CNSS_SALARIAL,
+      libelle: `${regimeLabel} Salariale (${p.cnssEmployeTotal}%)`,
+      montant: cnssSalarial,
+      estVariable: false,
+      taux: p.cnssEmployeTotal,
+    });
 
-  elements.push({
-    id: uuidv4(),
-    periodePaieId,
-    employeId: employe.id,
-    type: PayElementType.CNSS_PATRONAL,
-    libelle: `CNSS Patronale (${p.cnssPatronalTotal}%)`,
-    montant: cnssPatronal,
-    estVariable: false,
-    taux: p.cnssPatronalTotal,
-  });
+    elements.push({
+      id: uuidv4(),
+      periodePaieId,
+      employeId: employe.id,
+      type: PayElementType.CNSS_PATRONAL,
+      libelle: `${regimeLabel} Patronale (${p.cnssPatronalTotal}%)`,
+      montant: cnssPatronal,
+      estVariable: false,
+      taux: p.cnssPatronalTotal,
+    });
+  }
 
   // -----------------------------------------------------------------------
   // 4. IRPP — Annualized progressive tax
@@ -268,14 +291,38 @@ export async function calculatePayroll(
   });
 
   // -----------------------------------------------------------------------
-  // 6. Net à Payer & Coût Total Employeur
+  // 6. Loan Deductions
   // -----------------------------------------------------------------------
-  const netAPayer = round(salaireBrut - cnssSalarial - irppMensuel);
+  const activeLoans = await storage.getActiveLoans(employe.id);
+  let totalLoanDeductions = 0;
+
+  for (const loan of activeLoans) {
+    const deduction = Math.min(loan.montantMensuel, loan.soldeRestant);
+    if (deduction > 0) {
+      totalLoanDeductions += deduction;
+      elements.push({
+        id: uuidv4(),
+        periodePaieId,
+        employeId: employe.id,
+        type: PayElementType.RETENUE_PRET,
+        libelle: `Remboursement prêt: ${loan.motif}`,
+        montant: deduction,
+        estVariable: false,
+      });
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // 7. Net à Payer & Coût Total Employeur
+  // -----------------------------------------------------------------------
+  const netAPayer = round(
+    salaireBrut - cnssSalarial - irppMensuel - totalLoanDeductions
+  );
   const coutTotalEmployeur = round(salaireBrut + cnssPatronal + foprolos + tfp);
   const salaireNetImposable = round(revenuAnnuelImposable / 12);
 
   // -----------------------------------------------------------------------
-  // 7. Build BulletinPaie
+  // 8. Build BulletinPaie
   // -----------------------------------------------------------------------
   const bulletin: BulletinPaie = {
     id: uuidv4(),
@@ -348,6 +395,15 @@ export async function runPayrollForPeriod(
       variableElements
     );
     bulletins.push(result.bulletin);
+
+    // Record loan payments for this employee
+    const activeLoans = await storage.getActiveLoans(emp.id);
+    for (const loan of activeLoans) {
+      const deduction = Math.min(loan.montantMensuel, loan.soldeRestant);
+      if (deduction > 0) {
+        await storage.recordLoanPayment(loan.id, deduction);
+      }
+    }
   }
 
   return bulletins;

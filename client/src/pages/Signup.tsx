@@ -18,8 +18,12 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { authApi } from "@/lib/api";
-import { SectorType, WorkRegime, PlanType } from "@shared/types";
-import { PLAN_LIMITS } from "@shared/const";
+import { SectorType, WorkRegime, PlanType, SocialRegime } from "@shared/types";
+import {
+  PLAN_LIMITS,
+  SOCIAL_REGIME_LABELS,
+  DEFAULT_CONGES_PAYES_PAR_AN,
+} from "@shared/const";
 import {
   Building2,
   User,
@@ -74,12 +78,14 @@ export default function Signup() {
     adresse: "",
     secteurActivite: SectorType.SERVICES as string,
     regimeTravail: "48h" as string,
+    regimeSocial: SocialRegime.CNSS as string,
+    congesPayesParAn: DEFAULT_CONGES_PAYES_PAR_AN,
     telephone: "",
     plan: PlanType.GRATUIT as string,
   });
 
   const update = (field: string, value: string) =>
-    setForm((prev) => ({ ...prev, [field]: value }));
+    setForm(prev => ({ ...prev, [field]: value }));
 
   // Step validation
   const canProceed = () => {
@@ -198,7 +204,7 @@ export default function Signup() {
                     <Label className="text-blue-100/80 text-xs">Prénom</Label>
                     <Input
                       value={form.adminPrenom}
-                      onChange={(e) => update("adminPrenom", e.target.value)}
+                      onChange={e => update("adminPrenom", e.target.value)}
                       placeholder="Ahmed"
                       className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                     />
@@ -207,7 +213,7 @@ export default function Signup() {
                     <Label className="text-blue-100/80 text-xs">Nom</Label>
                     <Input
                       value={form.adminNom}
-                      onChange={(e) => update("adminNom", e.target.value)}
+                      onChange={e => update("adminNom", e.target.value)}
                       placeholder="Ben Ali"
                       className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                     />
@@ -220,7 +226,7 @@ export default function Signup() {
                   <Input
                     type="email"
                     value={form.adminEmail}
-                    onChange={(e) => update("adminEmail", e.target.value)}
+                    onChange={e => update("adminEmail", e.target.value)}
                     placeholder="vous@entreprise.tn"
                     className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                   />
@@ -233,7 +239,7 @@ export default function Signup() {
                     <Input
                       type={showPassword ? "text" : "password"}
                       value={form.adminPassword}
-                      onChange={(e) => update("adminPassword", e.target.value)}
+                      onChange={e => update("adminPassword", e.target.value)}
                       placeholder="Min. 8 caractères"
                       className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10 pr-10"
                     />
@@ -242,11 +248,7 @@ export default function Signup() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-200/40 hover:text-blue-200/70 transition"
                     >
-                      {showPassword ? (
-                        <EyeOff size={16} />
-                      ) : (
-                        <Eye size={16} />
-                      )}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                   {form.adminPassword.length > 0 &&
@@ -268,7 +270,7 @@ export default function Signup() {
                   </Label>
                   <Input
                     value={form.companyName}
-                    onChange={(e) => update("companyName", e.target.value)}
+                    onChange={e => update("companyName", e.target.value)}
                     placeholder="Ma Société SARL"
                     className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                   />
@@ -280,20 +282,21 @@ export default function Signup() {
                     </Label>
                     <Input
                       value={form.matriculeFiscal}
-                      onChange={(e) =>
-                        update("matriculeFiscal", e.target.value)
-                      }
+                      onChange={e => update("matriculeFiscal", e.target.value)}
                       placeholder="0000000X/A/M/000"
                       className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                     />
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-blue-100/80 text-xs">
-                      Code CNSS
+                      Code{" "}
+                      {form.regimeSocial === SocialRegime.CNRPS
+                        ? "CNRPS"
+                        : "CNSS"}
                     </Label>
                     <Input
                       value={form.codeCnss}
-                      onChange={(e) => update("codeCnss", e.target.value)}
+                      onChange={e => update("codeCnss", e.target.value)}
                       placeholder="00-000000-00"
                       className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                     />
@@ -303,7 +306,7 @@ export default function Signup() {
                   <Label className="text-blue-100/80 text-xs">Adresse</Label>
                   <Input
                     value={form.adresse}
-                    onChange={(e) => update("adresse", e.target.value)}
+                    onChange={e => update("adresse", e.target.value)}
                     placeholder="Rue, Ville, Gouvernorat"
                     className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                   />
@@ -315,7 +318,7 @@ export default function Signup() {
                     </Label>
                     <Select
                       value={form.secteurActivite}
-                      onValueChange={(v) => update("secteurActivite", v)}
+                      onValueChange={v => update("secteurActivite", v)}
                     >
                       <SelectTrigger className="bg-white/[0.06] border-white/10 text-white h-10 [&>span]:text-white">
                         <SelectValue />
@@ -335,7 +338,7 @@ export default function Signup() {
                     </Label>
                     <Select
                       value={form.regimeTravail}
-                      onValueChange={(v) => update("regimeTravail", v)}
+                      onValueChange={v => update("regimeTravail", v)}
                     >
                       <SelectTrigger className="bg-white/[0.06] border-white/10 text-white h-10 [&>span]:text-white">
                         <SelectValue />
@@ -356,10 +359,51 @@ export default function Signup() {
                   </Label>
                   <Input
                     value={form.telephone}
-                    onChange={(e) => update("telephone", e.target.value)}
+                    onChange={e => update("telephone", e.target.value)}
                     placeholder="+216 XX XXX XXX"
                     className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-blue-100/80 text-xs">
+                      Régime Social
+                    </Label>
+                    <Select
+                      value={form.regimeSocial}
+                      onValueChange={v => update("regimeSocial", v)}
+                    >
+                      <SelectTrigger className="bg-white/[0.06] border-white/10 text-white h-10 [&>span]:text-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(SOCIAL_REGIME_LABELS).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>
+                            {v}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-blue-100/80 text-xs">
+                      Congés payés / an (jours)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={60}
+                      value={form.congesPayesParAn}
+                      onChange={e =>
+                        setForm(prev => ({
+                          ...prev,
+                          congesPayesParAn: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      placeholder="18"
+                      className="bg-white/[0.06] border-white/10 text-white placeholder:text-blue-200/30 focus:border-blue-400/50 h-10"
+                    />
+                  </div>
                 </div>
               </>
             )}
@@ -422,7 +466,7 @@ export default function Signup() {
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={() => setStep((s) => s - 1)}
+                  onClick={() => setStep(s => s - 1)}
                   className="text-blue-200/60 hover:text-white hover:bg-white/10"
                 >
                   <ArrowLeft size={16} className="mr-1" /> Retour
@@ -433,7 +477,7 @@ export default function Signup() {
                 <Button
                   type="button"
                   disabled={!canProceed()}
-                  onClick={() => setStep((s) => s + 1)}
+                  onClick={() => setStep(s => s + 1)}
                   className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/25"
                 >
                   Suivant <ArrowRight size={16} className="ml-1" />

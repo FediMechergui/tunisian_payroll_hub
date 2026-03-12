@@ -30,6 +30,7 @@ export function generateCnssD17(
   bulletins: BulletinPaie[],
   trimestre: number,
   annee: number,
+  regime: "CNSS" | "CNRPS" = "CNSS"
 ): { pdf: InstanceType<typeof PDFDocument>; csv: string } {
   const pageW = 595.28 - 80;
   const doc = new PDFDocument({ size: "A4", margin: 40, layout: "landscape" });
@@ -37,32 +38,62 @@ export function generateCnssD17(
 
   // Header
   doc.rect(40, 40, landscapeW, 50).fill(PRIMARY);
-  doc.fillColor("#ffffff").fontSize(14).font("Helvetica-Bold")
-    .text("DÉCLARATION TRIMESTRIELLE DES SALAIRES — CNSS D-17", 50, 50, { width: landscapeW - 20, align: "center" });
-  doc.fontSize(9).font("Helvetica")
-    .text(`${trimestre}ème Trimestre ${annee}`, 50, 68, { width: landscapeW - 20, align: "center" });
+  doc
+    .fillColor("#ffffff")
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .text(`DÉCLARATION TRIMESTRIELLE DES SALAIRES — ${regime} D-17`, 50, 50, {
+      width: landscapeW - 20,
+      align: "center",
+    });
+  doc
+    .fontSize(9)
+    .font("Helvetica")
+    .text(`${trimestre}ème Trimestre ${annee}`, 50, 68, {
+      width: landscapeW - 20,
+      align: "center",
+    });
 
   let y = 105;
   // Company info
   doc.fillColor("#0f172a").fontSize(9).font("Helvetica");
-  doc.text(`Employeur: ${entreprise.nom}  |  Code CNSS: ${entreprise.codeCnss}  |  MF: ${entreprise.matriculeFiscal}`, 40, y);
+  doc.text(
+    `Employeur: ${entreprise.nom}  |  Code ${regime}: ${entreprise.codeCnss}  |  MF: ${entreprise.matriculeFiscal}`,
+    40,
+    y
+  );
 
   y += 25;
   // Table
   const cols = [40, 80, 200, 310, 400, 490, 580, 670];
   const colW = [40, 120, 110, 90, 90, 90, 90, 90];
-  const headers = ["N°", "Nom & Prénom", "Matricule CNSS", "Salaire Brut", "CNSS Salarié", "CNSS Patronal", "Total CNSS", "Nb Jours"];
+  const headers = [
+    "N°",
+    "Nom & Prénom",
+    `Matricule ${regime}`,
+    "Salaire Brut",
+    `${regime} Salarié`,
+    `${regime} Patronal`,
+    `Total ${regime}`,
+    "Nb Jours",
+  ];
 
   doc.rect(40, y, landscapeW, 18).fill(PRIMARY);
   doc.fillColor("#ffffff").fontSize(7).font("Helvetica-Bold");
   for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], cols[i] + 3, y + 5, { width: colW[i] - 6, align: i < 3 ? "left" : "right" });
+    doc.text(headers[i], cols[i] + 3, y + 5, {
+      width: colW[i] - 6,
+      align: i < 3 ? "left" : "right",
+    });
   }
   y += 18;
 
-  let totalBrut = 0, totalSal = 0, totalPat = 0, totalCnss = 0;
+  let totalBrut = 0,
+    totalSal = 0,
+    totalPat = 0,
+    totalCnss = 0;
   const csvRows: string[] = [
-    "N°;Nom;Prénom;Matricule CNSS;Salaire Brut;CNSS Salarié;CNSS Patronal;Total CNSS;Nb Jours",
+    `N°;Nom;Prénom;Matricule ${regime};Salaire Brut;${regime} Salarié;${regime} Patronal;Total ${regime};Nb Jours`,
   ];
 
   employes.forEach((emp, idx) => {
@@ -84,13 +115,30 @@ export function generateCnssD17(
     doc.rect(40, y, landscapeW, 14).fill(bg);
     doc.fillColor("#0f172a").fontSize(7).font("Helvetica");
     doc.text(String(idx + 1), cols[0] + 3, y + 3, { width: colW[0] - 6 });
-    doc.text(`${emp.nom.toUpperCase()} ${emp.prenom}`, cols[1] + 3, y + 3, { width: colW[1] - 6 });
+    doc.text(`${emp.nom.toUpperCase()} ${emp.prenom}`, cols[1] + 3, y + 3, {
+      width: colW[1] - 6,
+    });
     doc.text(emp.matriculeCnss, cols[2] + 3, y + 3, { width: colW[2] - 6 });
-    doc.text(fmt(brut), cols[3] + 3, y + 3, { width: colW[3] - 6, align: "right" });
-    doc.text(fmt(cnssSal), cols[4] + 3, y + 3, { width: colW[4] - 6, align: "right" });
-    doc.text(fmt(cnssPat), cols[5] + 3, y + 3, { width: colW[5] - 6, align: "right" });
-    doc.text(fmt(total), cols[6] + 3, y + 3, { width: colW[6] - 6, align: "right" });
-    doc.text(String(nbJours), cols[7] + 3, y + 3, { width: colW[7] - 6, align: "right" });
+    doc.text(fmt(brut), cols[3] + 3, y + 3, {
+      width: colW[3] - 6,
+      align: "right",
+    });
+    doc.text(fmt(cnssSal), cols[4] + 3, y + 3, {
+      width: colW[4] - 6,
+      align: "right",
+    });
+    doc.text(fmt(cnssPat), cols[5] + 3, y + 3, {
+      width: colW[5] - 6,
+      align: "right",
+    });
+    doc.text(fmt(total), cols[6] + 3, y + 3, {
+      width: colW[6] - 6,
+      align: "right",
+    });
+    doc.text(String(nbJours), cols[7] + 3, y + 3, {
+      width: colW[7] - 6,
+      align: "right",
+    });
     y += 14;
 
     csvRows.push(
@@ -102,12 +150,26 @@ export function generateCnssD17(
   doc.rect(40, y, landscapeW, 18).fill("#1e293b");
   doc.fillColor("#ffffff").fontSize(7).font("Helvetica-Bold");
   doc.text("TOTAUX", cols[1] + 3, y + 5, { width: colW[1] - 6 });
-  doc.text(fmt(totalBrut), cols[3] + 3, y + 5, { width: colW[3] - 6, align: "right" });
-  doc.text(fmt(totalSal), cols[4] + 3, y + 5, { width: colW[4] - 6, align: "right" });
-  doc.text(fmt(totalPat), cols[5] + 3, y + 5, { width: colW[5] - 6, align: "right" });
-  doc.text(fmt(totalCnss), cols[6] + 3, y + 5, { width: colW[6] - 6, align: "right" });
+  doc.text(fmt(totalBrut), cols[3] + 3, y + 5, {
+    width: colW[3] - 6,
+    align: "right",
+  });
+  doc.text(fmt(totalSal), cols[4] + 3, y + 5, {
+    width: colW[4] - 6,
+    align: "right",
+  });
+  doc.text(fmt(totalPat), cols[5] + 3, y + 5, {
+    width: colW[5] - 6,
+    align: "right",
+  });
+  doc.text(fmt(totalCnss), cols[6] + 3, y + 5, {
+    width: colW[6] - 6,
+    align: "right",
+  });
 
-  csvRows.push(`TOTAL;;;${totalBrut.toFixed(3)};${totalSal.toFixed(3)};${totalPat.toFixed(3)};${totalCnss.toFixed(3)};`);
+  csvRows.push(
+    `TOTAL;;;${totalBrut.toFixed(3)};${totalSal.toFixed(3)};${totalPat.toFixed(3)};${totalCnss.toFixed(3)};`
+  );
 
   doc.end();
   return { pdf: doc, csv: csvRows.join("\n") };

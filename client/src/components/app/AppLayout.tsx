@@ -29,6 +29,7 @@ import {
   Key,
   Globe,
   FileUp,
+  Banknote,
 } from "lucide-react";
 import NotificationBell from "@/components/app/NotificationBell";
 
@@ -37,6 +38,7 @@ interface NavItem {
   href: string;
   icon: React.ReactNode;
   minRole?: UserRole;
+  maxRole?: UserRole;
   badge?: number;
   disabled?: boolean;
   disabledLabel?: string;
@@ -47,26 +49,37 @@ const navItems: NavItem[] = [
     label: "Tableau de Bord",
     href: "/app",
     icon: <LayoutDashboard size={20} />,
+    minRole: UserRole.MANAGER,
   },
   {
     label: "Employés",
     href: "/app/employes",
     icon: <Users size={20} />,
+    minRole: UserRole.MANAGER,
   },
   {
     label: "Paie",
     href: "/app/paie",
     icon: <Wallet size={20} />,
+    minRole: UserRole.COMPTABLE,
   },
   {
     label: "Congés",
     href: "/app/conges",
     icon: <CalendarDays size={20} />,
+    minRole: UserRole.MANAGER,
+  },
+  {
+    label: "Prêts & Avances",
+    href: "/app/prets",
+    icon: <Banknote size={20} />,
+    minRole: UserRole.MANAGER,
   },
   {
     label: "Mon Espace",
     href: "/app/mon-espace",
     icon: <CircleUser size={20} />,
+    maxRole: UserRole.EMPLOYE,
   },
   {
     label: "Documents",
@@ -96,6 +109,7 @@ const navItems: NavItem[] = [
     label: "Demandes Docs",
     href: "/app/demandes-documents",
     icon: <FileUp size={20} />,
+    maxRole: UserRole.EMPLOYE,
   },
 ];
 
@@ -115,12 +129,12 @@ const adminItems: NavItem[] = [
     icon: <Settings size={20} />,
     minRole: UserRole.ADMIN_RH,
   },
-  {
-    label: "Clés API",
-    href: "/app/cles-api",
-    icon: <Key size={20} />,
-    minRole: UserRole.ADMIN_RH,
-  },
+  // {
+  //   label: "Clés API",
+  //   href: "/app/cles-api",
+  //   icon: <Key size={20} />,
+  //   minRole: UserRole.ADMIN_RH,
+  // },
   {
     label: "Utilisateurs",
     href: "/app/utilisateurs",
@@ -152,6 +166,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ROLE_HIERARCHY[user?.role as keyof typeof ROLE_HIERARCHY] || 0;
 
   const isVisible = (item: NavItem) => {
+    if (item.maxRole) {
+      const maxLevel =
+        ROLE_HIERARCHY[item.maxRole as keyof typeof ROLE_HIERARCHY] || 0;
+      return userLevel <= maxLevel;
+    }
     if (!item.minRole) return true;
     const requiredLevel =
       ROLE_HIERARCHY[item.minRole as keyof typeof ROLE_HIERARCHY] || 0;

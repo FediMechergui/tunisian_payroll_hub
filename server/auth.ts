@@ -30,6 +30,7 @@ declare global {
         prenom: string;
         role: UserRole;
         entrepriseId: string;
+        employeId?: string;
       };
     }
   }
@@ -54,28 +55,25 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
       prenom: string;
       role: UserRole;
       entrepriseId: string;
+      employeId?: string;
     };
     req.user = decoded;
     next();
   } catch {
-    return res
-      .status(401)
-      .json({
-        success: false,
-        error: "Token invalide ou expiré",
-      } satisfies ApiResponse);
+    return res.status(401).json({
+      success: false,
+      error: "Token invalide ou expiré",
+    } satisfies ApiResponse);
   }
 }
 
 export function requireRole(...roles: UserRole[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "Non authentifié",
-        } satisfies ApiResponse);
+      return res.status(401).json({
+        success: false,
+        error: "Non authentifié",
+      } satisfies ApiResponse);
     }
 
     if (!roles.includes(req.user.role)) {
@@ -92,12 +90,10 @@ export function requireRole(...roles: UserRole[]) {
 export function requireMinRole(minRole: UserRole) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          error: "Non authentifié",
-        } satisfies ApiResponse);
+      return res.status(401).json({
+        success: false,
+        error: "Non authentifié",
+      } satisfies ApiResponse);
     }
 
     const userLevel =
@@ -166,6 +162,8 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
       secteurActivite: d.secteurActivite,
       telephone: d.telephone,
       regimeTravail: d.regimeTravail,
+      regimeSocial: d.regimeSocial,
+      congesPayesParAn: d.congesPayesParAn,
       plan: d.plan as PlanType,
       maxEmployees: planConfig.maxEmployees,
     } as any);
@@ -189,6 +187,7 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
       prenom: user.prenom,
       role: user.role,
       entrepriseId: user.entrepriseId,
+      employeId: user.employeId,
     };
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
     res.cookie(JWT_COOKIE_NAME, token, {
@@ -248,6 +247,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
       prenom: user.prenom,
       role: user.role,
       entrepriseId: user.entrepriseId,
+      employeId: user.employeId,
     };
 
     const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: JWT_EXPIRY });

@@ -3,9 +3,11 @@
 // ============================================================================
 
 import { Router, type Request, type Response } from "express";
+import path from "path";
 import { storage } from "../storage";
-import { requireAuth, requireRole } from "../auth";
+import { requireAuth, requireRole, requireMinRole } from "../auth";
 import { UserRole } from "../../shared/types";
+import { uploadLogo, UPLOAD_DIR } from "../multer-config";
 
 export const entreprisesRouter = Router();
 
@@ -57,5 +59,37 @@ entreprisesRouter.put(
         .json({ success: false, error: "Entreprise non trouvée" });
     }
     return res.json({ success: true, data: e });
+  }
+);
+
+// POST /api/entreprises/:id/logo — Upload company logo
+entreprisesRouter.post(
+  "/:id/logo",
+  requireMinRole(UserRole.ADMIN_RH),
+  uploadLogo.single("logo"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Aucun fichier fourni" });
+      }
+
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      const e = await storage.updateEntreprise(req.params.id, {
+        logoUrl,
+      } as any);
+      if (!e) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Entreprise non trouvée" });
+      }
+      return res.json({ success: true, data: e });
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: "Erreur lors du téléchargement du logo",
+      });
+    }
   }
 );

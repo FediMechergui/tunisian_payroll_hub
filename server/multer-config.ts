@@ -32,6 +32,28 @@ const documentStorage = multer.diskStorage({
   },
 });
 
+// Disk storage for company logos
+const logoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, path.join(UPLOAD_DIR, "logos"));
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const uniqueName = `logo-${uuidv4()}${ext}`;
+    cb(null, uniqueName);
+  },
+});
+
+// Image-only filter for logos
+function imageFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/svg+xml"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error(`Type de fichier non autorisé pour le logo: ${file.mimetype}. Utilisez JPEG, PNG, WebP ou SVG.`));
+  }
+}
+
 // File filter — allow common document types
 function fileFilter(_req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) {
   const allowedTypes = [
@@ -68,6 +90,16 @@ export const uploadDocuments = multer({
   fileFilter,
   limits: {
     fileSize: 20 * 1024 * 1024, // 20MB
+    files: 1,
+  },
+});
+
+// Upload middleware for company logos
+export const uploadLogo = multer({
+  storage: logoStorage,
+  fileFilter: imageFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
     files: 1,
   },
 });

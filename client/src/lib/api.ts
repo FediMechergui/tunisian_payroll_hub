@@ -26,6 +26,7 @@ import type {
   ApiPermission,
   DocumentRequest,
   CreateCompanyWithAdminRequest,
+  Loan,
 } from "@shared/types";
 
 const api = axios.create({
@@ -70,6 +71,8 @@ export const authApi = {
     adresse: string;
     secteurActivite: string;
     regimeTravail: string;
+    regimeSocial?: string;
+    congesPayesParAn?: number;
     telephone?: string;
     plan: string;
   }) =>
@@ -129,6 +132,18 @@ export const entreprisesApi = {
 
   update: (id: string, data: Partial<Entreprise>) =>
     api.put<ApiResponse<Entreprise>>(`/entreprises/${id}`, data),
+
+  uploadLogo: (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("logo", file);
+    return api.post<ApiResponse<Entreprise>>(
+      `/entreprises/${id}/logo`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+  },
 };
 
 // --- Parametres API ---
@@ -398,6 +413,38 @@ export const apiKeysApi = {
   delete: (id: string) => api.delete<ApiResponse>(`/api-keys/${id}`),
 };
 
+// --- Loans API ---
+
+export const loansApi = {
+  list: (employeId?: string) =>
+    api.get<ApiResponse<Loan[]>>("/loans", {
+      params: employeId ? { employeId } : {},
+    }),
+
+  get: (id: string) => api.get<ApiResponse<Loan>>(`/loans/${id}`),
+
+  create: (data: {
+    employeId: string;
+    montantTotal: number;
+    nbMensualites: number;
+    motif: string;
+    dateDebut: string;
+  }) => api.post<ApiResponse<Loan>>("/loans", data),
+
+  request: (data: {
+    montantTotal: number;
+    nbMensualites: number;
+    motif: string;
+    dateDebut: string;
+  }) => api.post<ApiResponse<Loan>>("/loans/request", data),
+
+  updateStatus: (id: string, statut: string) =>
+    api.put<ApiResponse<Loan>>(`/loans/${id}/status`, { statut }),
+
+  getActiveByEmployee: (employeId: string) =>
+    api.get<ApiResponse<Loan[]>>(`/loans/employee/${employeId}/active`),
+};
+
 // --- Super External Admin API ---
 
 export const superExternalApi = {
@@ -480,6 +527,9 @@ export const documentRequestsApi = {
     }),
 
   cancel: (id: string) => api.delete<ApiResponse>(`/document-requests/${id}`),
+
+  download: (id: string) =>
+    api.get(`/document-requests/${id}/download`, { responseType: "blob" }),
 
   getRequiredPapers: (type: string) =>
     api.get<ApiResponse<string[]>>(
