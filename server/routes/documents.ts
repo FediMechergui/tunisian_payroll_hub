@@ -19,6 +19,7 @@ const DOC_LABELS: Record<DocumentType, string> = {
   [DocumentType.ATTESTATION_CNSS]: "Attestation CNSS",
   [DocumentType.FICHE_PAIE_ANNUELLE]: "Fiche de Paie Annuelle",
   [DocumentType.CERTIFICAT_TRAVAIL]: "Certificat de Travail",
+  [DocumentType.ORDRE_DE_VIREMENT]: "Ordre de Virement",
 };
 
 // GET /api/documents — List all generated documents
@@ -65,7 +66,7 @@ documentsRouter.post(
       });
     }
 
-    const { employeId, typeDocument, annee } = parsed.data;
+    const { employeId, typeDocument, annee, mois } = parsed.data;
 
     const employe = await storage.getEmploye(employeId);
     if (!employe)
@@ -110,6 +111,34 @@ documentsRouter.post(
         bulletinData = filtered;
       }
 
+      // For Ordre de Virement, find net pay from the latest bulletin
+      let montant: number | undefined;
+      let virementMois = mois || new Date().getMonth() + 1;
+      if (typeDocument === DocumentType.ORDRE_DE_VIREMENT) {
+        const allBulletins = await storage.getBulletinsByEmploye(employeId);
+        const targetYear = annee || new Date().getFullYear();
+        // Find bulletin for the specified month/year
+        for (const b of allBulletins) {
+          const periode = await storage.getPeriodePaie(b.periodePaieId);
+          if (
+            periode &&
+            periode.annee === targetYear &&
+            periode.mois === virementMois
+          ) {
+            montant = b.netAPayer;
+            break;
+          }
+        }
+        // Fall back to latest bulletin if no match
+        if (montant === undefined && allBulletins.length > 0) {
+          montant = allBulletins[allBulletins.length - 1].netAPayer;
+        }
+        // Fall back to base salary if no bulletin
+        if (montant === undefined) {
+          montant = employe.salaireBase;
+        }
+      }
+
       const nomFichier = `${typeDocument}_${employe.nom}_${employe.prenom}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
       // Save metadata
@@ -125,6 +154,8 @@ documentsRouter.post(
       // Generate PDF and stream
       const pdfStream = generateDocument(typeDocument, employe, entreprise, {
         annee: annee || new Date().getFullYear(),
+        mois: virementMois,
+        montant,
         bulletins: bulletinData,
       });
 
@@ -191,8 +222,20 @@ documentsRouter.get("/:id/download", async (req: Request, res: Response) => {
       bulletinData = filtered;
     }
 
+    // For Ordre de Virement re-download, fetch latest net pay
+    let montant: number | undefined;
+    if (doc.typeDocument === DocumentType.ORDRE_DE_VIREMENT) {
+      const allBulletins = await storage.getBulletinsByEmploye(doc.employeId);
+      if (allBulletins.length > 0) {
+        montant = allBulletins[allBulletins.length - 1].netAPayer;
+      } else {
+        montant = employe.salaireBase;
+      }
+    }
+
     const pdfStream = generateDocument(doc.typeDocument, employe, entreprise, {
       bulletins: bulletinData,
+      montant,
     });
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(

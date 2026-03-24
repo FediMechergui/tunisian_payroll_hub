@@ -9,6 +9,7 @@ import { requireAuth, requireMinRole } from "../auth";
 import { UserRole } from "../../shared/types";
 import { PLAN_LIMITS } from "../../shared/const";
 import { notificationService } from "../notification-service";
+import { sendAccountCreatedEmail } from "../email-service";
 
 export const employeesRouter = Router();
 
@@ -172,6 +173,25 @@ employeesRouter.post(
         req.user!.entrepriseId,
         `${emp.prenom} ${emp.nom}`
       );
+
+      // Send welcome email with credentials if account was created
+      if (linkedUser && finalEmail) {
+        const entrepriseObj = await storage.getEntreprise(
+          req.user!.entrepriseId
+        );
+        sendAccountCreatedEmail(
+          finalEmail,
+          emp.prenom,
+          emp.nom,
+          finalEmail,
+          finalPassword,
+          entrepriseObj?.nom || "PayrollHub",
+          linkedUser.role
+        ).catch(err =>
+          console.error("[EMAIL] Erreur envoi email employé:", err)
+        );
+      }
+
       return res.status(201).json({
         success: true,
         data: emp,

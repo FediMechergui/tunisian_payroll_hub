@@ -61,6 +61,7 @@ export const DOCUMENT_REQUIRED_PAPERS: Record<string, string[]> = {
   attestation_cnss: ["Copie CIN"],
   fiche_paie_annuelle: [],
   certificat_travail: ["Lettre de démission ou document de fin de contrat"],
+  ordre_de_virement: [],
 };
 
 // Required papers for leave requests

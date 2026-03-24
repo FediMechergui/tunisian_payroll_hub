@@ -269,36 +269,67 @@ export function generateVirementBancaire(
   periode: PeriodePaie,
 ): { pdf: InstanceType<typeof PDFDocument>; wireFile: string } {
   const MOIS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
-  const pageW = 595.28 - 80;
-  const doc = new PDFDocument({ size: "A4", margin: 40 });
+  const doc = new PDFDocument({ size: "A4", margin: 40, layout: "landscape" });
+  const landscapeW = 841.89 - 80;
 
-  doc.rect(40, 40, pageW, 50).fill(PRIMARY);
-  doc.fillColor("#ffffff").fontSize(14).font("Helvetica-Bold")
-    .text("ORDRE DE VIREMENT BANCAIRE — SALAIRES", 50, 48, { width: pageW - 20, align: "center" });
-  doc.fontSize(9).font("Helvetica")
-    .text(`${MOIS[periode.mois - 1]} ${periode.annee}`, 50, 68, { width: pageW - 20, align: "center" });
+  doc.rect(40, 40, landscapeW, 50).fill(PRIMARY);
+  doc
+    .fillColor("#ffffff")
+    .fontSize(14)
+    .font("Helvetica-Bold")
+    .text("ORDRE DE VIREMENT BANCAIRE — SALAIRES", 50, 48, {
+      width: landscapeW - 20,
+      align: "center",
+    });
+  doc
+    .fontSize(9)
+    .font("Helvetica")
+    .text(`${MOIS[periode.mois - 1]} ${periode.annee}`, 50, 68, {
+      width: landscapeW - 20,
+      align: "center",
+    });
 
   let y = 105;
   doc.fillColor("#0f172a").fontSize(9).font("Helvetica");
-  doc.text(`Employeur: ${entreprise.nom}  |  MF: ${entreprise.matriculeFiscal}`, 40, y);
+  doc.text(
+    `Employeur: ${entreprise.nom}  |  MF: ${entreprise.matriculeFiscal}  |  Code CNSS: ${entreprise.codeCnss}`,
+    40,
+    y
+  );
+  y += 12;
+  doc.text(
+    `Adresse: ${entreprise.adresse}${entreprise.telephone ? "  |  Tél: " + entreprise.telephone : ""}`,
+    40,
+    y
+  );
 
   y += 25;
-  const cols = [40, 70, 190, 310, 420];
-  const colW = [30, 120, 120, 110, 95];
-  const headers = ["N°", "Nom & Prénom", "IBAN", "Banque", "Montant (TND)"];
+  // Columns: Réf, Nom & Prénom, CIN, RIB, Banque, Montant
+  const cols = [40, 110, 250, 340, 500, 620];
+  const colW = [70, 140, 90, 160, 120, 140];
+  const headers = [
+    "Référence",
+    "Nom & Prénom",
+    "CIN",
+    "RIB",
+    "Banque",
+    "Montant (TND)",
+  ];
 
-  doc.rect(40, y, pageW, 18).fill(PRIMARY);
-  doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
+  doc.rect(40, y, landscapeW, 18).fill(PRIMARY);
+  doc.fillColor("#ffffff").fontSize(7).font("Helvetica-Bold");
   for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], cols[i] + 3, y + 5, { width: colW[i] - 6, align: i < 4 ? "left" : "right" });
+    doc.text(headers[i], cols[i] + 3, y + 5, {
+      width: colW[i] - 6,
+      align: i === 5 ? "right" : "left",
+    });
   }
   y += 18;
 
   let totalVirement = 0;
-  // Wire file format: IBAN;AMOUNT;BENEFICIARY;REFERENCE
-  const wireLines: string[] = [
-    `RIB;MONTANT;BENEFICIAIRE;REFERENCE`,
-  ];
+  let virementCount = 0;
+  // Wire file format: REFERENCE;NOM;PRENOM;CIN;RIB;MONTANT;BANQUE
+  const wireLines: string[] = [`REFERENCE;NOM;PRENOM;CIN;RIB;MONTANT;BANQUE`];
 
   employes.forEach((emp, idx) => {
     const bulletin = bulletins.find(b => b.employeId === emp.id);
@@ -306,41 +337,84 @@ export function generateVirementBancaire(
 
     const montant = bulletin.netAPayer;
     totalVirement += montant;
+    virementCount++;
+
+    const ref = `SAL-${periode.annee}${String(periode.mois).padStart(2, "0")}-${emp.matriculeCnss || emp.cin}`;
+    const rib = emp.iban.replace(/\s/g, "");
 
     const bg = idx % 2 === 0 ? LIGHT_BG : "#ffffff";
-    doc.rect(40, y, pageW, 14).fill(bg);
+    doc.rect(40, y, landscapeW, 14).fill(bg);
     doc.fillColor("#0f172a").fontSize(7).font("Helvetica");
-    doc.text(String(idx + 1), cols[0] + 3, y + 3, { width: colW[0] - 6 });
-    doc.text(`${emp.nom.toUpperCase()} ${emp.prenom}`, cols[1] + 3, y + 3, { width: colW[1] - 6 });
-    doc.text(emp.iban.substring(0, 24), cols[2] + 3, y + 3, { width: colW[2] - 6 });
-    doc.text(emp.banque?.substring(0, 15) || "", cols[3] + 3, y + 3, { width: colW[3] - 6 });
-    doc.text(fmt(montant), cols[4] + 3, y + 3, { width: colW[4] - 6, align: "right" });
+    doc.text(ref, cols[0] + 3, y + 3, { width: colW[0] - 6 });
+    doc.text(`${emp.nom.toUpperCase()} ${emp.prenom}`, cols[1] + 3, y + 3, {
+      width: colW[1] - 6,
+    });
+    doc.text(emp.cin, cols[2] + 3, y + 3, { width: colW[2] - 6 });
+    doc.text(rib.substring(0, 20), cols[3] + 3, y + 3, { width: colW[3] - 6 });
+    doc.text(emp.banque?.substring(0, 18) || "", cols[4] + 3, y + 3, {
+      width: colW[4] - 6,
+    });
+    doc.text(fmt(montant), cols[5] + 3, y + 3, {
+      width: colW[5] - 6,
+      align: "right",
+    });
     y += 14;
 
-    const ref = `SAL-${periode.annee}${String(periode.mois).padStart(2, "0")}-${emp.matriculeCnss}`;
+    // Page break if needed
+    if (y > 520) {
+      doc.addPage({ size: "A4", margin: 40, layout: "landscape" });
+      y = 50;
+      doc.rect(40, y, landscapeW, 18).fill(PRIMARY);
+      doc.fillColor("#ffffff").fontSize(7).font("Helvetica-Bold");
+      for (let i = 0; i < headers.length; i++) {
+        doc.text(headers[i], cols[i] + 3, y + 5, {
+          width: colW[i] - 6,
+          align: i === 5 ? "right" : "left",
+        });
+      }
+      y += 18;
+    }
+
     wireLines.push(
-      `${emp.iban.replace(/\s/g, "")};${montant.toFixed(3)};${emp.nom.toUpperCase()} ${emp.prenom};${ref}`
+      `${ref};${emp.nom};${emp.prenom};${emp.cin};${rib};${montant.toFixed(3)};${emp.banque || ""}`
     );
   });
 
-  // Total
-  doc.rect(40, y, pageW, 18).fill("#1e293b");
+  // Total row
+  doc.rect(40, y, landscapeW, 18).fill("#1e293b");
   doc.fillColor("#ffffff").fontSize(8).font("Helvetica-Bold");
-  doc.text("TOTAL DES VIREMENTS", cols[1] + 3, y + 5, { width: colW[1] + colW[2] + colW[3] - 6 });
-  doc.text(fmt(totalVirement), cols[4] + 3, y + 5, { width: colW[4] - 6, align: "right" });
+  doc.text("TOTAL DES VIREMENTS", cols[1] + 3, y + 5, {
+    width: colW[1] + colW[2] + colW[3] - 6,
+  });
+  doc.text(fmt(totalVirement), cols[5] + 3, y + 5, {
+    width: colW[5] - 6,
+    align: "right",
+  });
 
   y += 35;
   doc.fillColor("#334155").fontSize(9).font("Helvetica");
-  doc.text(`Nombre de virements : ${employes.filter(e => bulletins.some(b => b.employeId === e.id)).length}`, 40, y);
+  doc.text(`Nombre de virements : ${virementCount}`, 40, y);
   y += 14;
   doc.text(`Montant total : ${fmt(totalVirement)} TND`, 40, y);
+  y += 14;
+  doc.text(`Période : ${MOIS[periode.mois - 1]} ${periode.annee}`, 40, y);
+  y += 14;
+  doc.text(
+    `Date de génération : ${formatDate(new Date().toISOString())}`,
+    40,
+    y
+  );
 
-  // Signature
+  // Signature blocks
   y += 40;
   doc.fontSize(9).font("Helvetica-Bold").fillColor("#334155");
-  doc.text("Signature autorisée", 300, y, { width: 200, align: "center" });
+  doc.text("Établi par", 100, y, { width: 180, align: "center" });
+  doc.text("Vérifié par", 340, y, { width: 180, align: "center" });
+  doc.text("Signature autorisée", 560, y, { width: 180, align: "center" });
   y += 30;
-  doc.rect(320, y, 160, 0.5).fill(BORDER);
+  doc.rect(120, y, 140, 0.5).fill(BORDER);
+  doc.rect(360, y, 140, 0.5).fill(BORDER);
+  doc.rect(580, y, 140, 0.5).fill(BORDER);
 
   doc.end();
   return { pdf: doc, wireFile: wireLines.join("\n") };

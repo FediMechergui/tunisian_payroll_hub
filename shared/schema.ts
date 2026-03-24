@@ -193,6 +193,7 @@ export const generateDocumentSchema = z.object({
   employeId: z.string().min(1, "L'employé est requis"),
   typeDocument: z.nativeEnum(DocumentType),
   annee: z.number().min(2020).max(2100).optional(),
+  mois: z.number().min(1).max(12).optional(),
 });
 
 export const generateDeclarationSchema = z.object({

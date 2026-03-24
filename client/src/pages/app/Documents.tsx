@@ -46,6 +46,7 @@ import {
   FileBadge,
   FileOutput,
   FileSpreadsheet,
+  Banknote,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,7 @@ const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   [DocumentType.ATTESTATION_CNSS]: "Attestation CNSS",
   [DocumentType.FICHE_PAIE_ANNUELLE]: "Fiche de paie annuelle",
   [DocumentType.CERTIFICAT_TRAVAIL]: "Certificat de travail",
+  [DocumentType.ORDRE_DE_VIREMENT]: "Ordre de virement",
 };
 
 const DOC_TYPE_ICONS: Record<DocumentType, typeof FileText> = {
@@ -66,6 +68,7 @@ const DOC_TYPE_ICONS: Record<DocumentType, typeof FileText> = {
   [DocumentType.ATTESTATION_CNSS]: FileOutput,
   [DocumentType.FICHE_PAIE_ANNUELLE]: FileSpreadsheet,
   [DocumentType.CERTIFICAT_TRAVAIL]: FileText,
+  [DocumentType.ORDRE_DE_VIREMENT]: Banknote,
 };
 
 type DocWithEmploye = DocumentRH & {
@@ -78,7 +81,9 @@ type DocWithEmploye = DocumentRH & {
 
 export default function Documents() {
   const { user } = useAuth();
-  const isManager = user ? ROLE_HIERARCHY[user.role] >= ROLE_HIERARCHY[UserRole.MANAGER] : false;
+  const isManager = user
+    ? ROLE_HIERARCHY[user.role] >= ROLE_HIERARCHY[UserRole.MANAGER]
+    : false;
 
   const [documents, setDocuments] = useState<DocWithEmploye[]>([]);
   const [employes, setEmployes] = useState<Employe[]>([]);
@@ -91,6 +96,7 @@ export default function Documents() {
   const [selectedEmploye, setSelectedEmploye] = useState("");
   const [selectedType, setSelectedType] = useState<DocumentType | "">("");
   const [selectedAnnee, setSelectedAnnee] = useState(new Date().getFullYear());
+  const [selectedMois, setSelectedMois] = useState(new Date().getMonth() + 1);
 
   // ── Load data ────────────────────────────────────────────────────
   const loadData = async () => {
@@ -102,7 +108,9 @@ export default function Documents() {
       ]);
       setDocuments(docsRes.data.data || []);
       const empData = empsRes.data.data;
-      setEmployes(Array.isArray(empData) ? empData : (empData as any)?.items || []);
+      setEmployes(
+        Array.isArray(empData) ? empData : (empData as any)?.items || []
+      );
     } catch {
       // ignore
     } finally {
@@ -122,7 +130,15 @@ export default function Documents() {
       const response = await documentsApi.generate({
         employeId: selectedEmploye,
         typeDocument: selectedType,
-        annee: selectedType === DocumentType.FICHE_PAIE_ANNUELLE ? selectedAnnee : undefined,
+        annee:
+          selectedType === DocumentType.FICHE_PAIE_ANNUELLE ||
+          selectedType === DocumentType.ORDRE_DE_VIREMENT
+            ? selectedAnnee
+            : undefined,
+        mois:
+          selectedType === DocumentType.ORDRE_DE_VIREMENT
+            ? selectedMois
+            : undefined,
       });
 
       // Download the blob
@@ -221,7 +237,10 @@ export default function Documents() {
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
                   <Label>Employé</Label>
-                  <Select value={selectedEmploye} onValueChange={setSelectedEmploye}>
+                  <Select
+                    value={selectedEmploye}
+                    onValueChange={setSelectedEmploye}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Sélectionner un employé" />
                     </SelectTrigger>
@@ -236,7 +255,10 @@ export default function Documents() {
                 </div>
                 <div className="space-y-2">
                   <Label>Type de document</Label>
-                  <Select value={selectedType} onValueChange={v => setSelectedType(v as DocumentType)}>
+                  <Select
+                    value={selectedType}
+                    onValueChange={v => setSelectedType(v as DocumentType)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Type de document" />
                     </SelectTrigger>
@@ -260,6 +282,51 @@ export default function Documents() {
                       onChange={e => setSelectedAnnee(Number(e.target.value))}
                     />
                   </div>
+                )}
+                {selectedType === DocumentType.ORDRE_DE_VIREMENT && (
+                  <>
+                    <div className="space-y-2">
+                      <Label>Année</Label>
+                      <Input
+                        type="number"
+                        min={2020}
+                        max={2099}
+                        value={selectedAnnee}
+                        onChange={e => setSelectedAnnee(Number(e.target.value))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Mois</Label>
+                      <Select
+                        value={String(selectedMois)}
+                        onValueChange={v => setSelectedMois(Number(v))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Mois" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "Janvier",
+                            "Février",
+                            "Mars",
+                            "Avril",
+                            "Mai",
+                            "Juin",
+                            "Juillet",
+                            "Août",
+                            "Septembre",
+                            "Octobre",
+                            "Novembre",
+                            "Décembre",
+                          ].map((m, i) => (
+                            <SelectItem key={i + 1} value={String(i + 1)}>
+                              {m}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
                 <Button
                   onClick={handleGenerate}
@@ -321,7 +388,8 @@ export default function Documents() {
         <CardContent>
           {filtered.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              Aucun document trouvé. Utilisez le bouton « Générer un document » pour en créer.
+              Aucun document trouvé. Utilisez le bouton « Générer un document »
+              pour en créer.
             </p>
           ) : (
             <Table>
@@ -338,10 +406,14 @@ export default function Documents() {
                 {filtered.map(d => (
                   <TableRow key={d.id}>
                     <TableCell>
-                      <Badge variant="outline">{DOC_TYPE_LABELS[d.typeDocument]}</Badge>
+                      <Badge variant="outline">
+                        {DOC_TYPE_LABELS[d.typeDocument]}
+                      </Badge>
                     </TableCell>
                     <TableCell>
-                      {d.employe ? `${d.employe.nom} ${d.employe.prenom}` : d.employeId}
+                      {d.employe
+                        ? `${d.employe.nom} ${d.employe.prenom}`
+                        : d.employeId}
                     </TableCell>
                     <TableCell>{d.titre}</TableCell>
                     <TableCell>
@@ -349,11 +421,20 @@ export default function Documents() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleDownload(d)}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownload(d)}
+                        >
                           <Download className="h-4 w-4" />
                         </Button>
-                        {ROLE_HIERARCHY[user!.role] >= ROLE_HIERARCHY[UserRole.ADMIN_RH] && (
-                          <Button variant="ghost" size="icon" onClick={() => handleDelete(d.id)}>
+                        {ROLE_HIERARCHY[user!.role] >=
+                          ROLE_HIERARCHY[UserRole.ADMIN_RH] && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(d.id)}
+                          >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         )}

@@ -31,6 +31,7 @@ import { externalApiRouter } from "./routes/external-api";
 import { superExternalRouter } from "./routes/super-external";
 import { documentRequestsRouter } from "./routes/document-requests";
 import { loansRouter } from "./routes/loans";
+import { verifySmtpConnection } from "./email-service";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +40,7 @@ async function startServer() {
   // Connect to MongoDB
   await connectDB();
   await storage.seed();
+  verifySmtpConnection();
 
   const app = express();
   const server = createServer(app);

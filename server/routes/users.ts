@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "../storage";
 import { requireAuth, requireRole } from "../auth";
 import { UserRole } from "../../shared/types";
+import { sendAccountCreatedEmail } from "../email-service";
 
 export const usersRouter = Router();
 
@@ -49,6 +50,20 @@ usersRouter.post("/", async (req: Request, res: Response) => {
       entrepriseId: req.user!.entrepriseId,
       employeId,
     });
+
+    // Send welcome email with credentials
+    const entreprise = await storage.getEntreprise(req.user!.entrepriseId);
+    sendAccountCreatedEmail(
+      email,
+      prenom,
+      nom,
+      email,
+      motDePasse,
+      entreprise?.nom || "PayrollHub",
+      role
+    ).catch(err =>
+      console.error("[EMAIL] Erreur envoi email utilisateur:", err)
+    );
 
     const { motDePasseHash: _, ...userData } = user;
     return res.status(201).json({ success: true, data: userData });

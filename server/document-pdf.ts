@@ -636,13 +636,117 @@ export function generateFichePaieAnnuelle(
 }
 
 // ============================================================================
+// ORDRE DE VIREMENT (Individual Bank Transfer Order)
+// Official document for individual employee salary transfer
+// ============================================================================
+export function generateOrdreDeVirement(
+  employe: Employe,
+  entreprise: Entreprise,
+  montant: number,
+  mois: number,
+  annee: number,
+): InstanceType<typeof PDFDocument> {
+  const doc = new PDFDocument({ size: "A4", margin: 40 });
+  const pageW = 595.28 - 80;
+  const MOIS_NOMS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+
+  let y = drawHeader(doc, entreprise, "ORDRE DE VIREMENT", pageW);
+
+  y += 10;
+  const today = formatDate(new Date().toISOString());
+  doc.fillColor("#0f172a").fontSize(11).font("Helvetica");
+  doc.text(`Tunis, le ${today}`, 40, y, { width: pageW, align: "right" });
+
+  y += 30;
+  doc.fontSize(12).font("Helvetica-Bold").fillColor(PRIMARY)
+    .text(`Virement de salaire — ${MOIS_NOMS[mois - 1]} ${annee}`, 40, y, { width: pageW, align: "center" });
+
+  // Reference
+  const ref = `SAL-${annee}${String(mois).padStart(2, "0")}-${employe.matriculeCnss || employe.cin}`;
+  y += 25;
+  doc.fontSize(10).font("Helvetica").fillColor("#64748b")
+    .text(`Référence : ${ref}`, 40, y, { width: pageW, align: "center" });
+
+  // Beneficiary info box
+  y += 30;
+  doc.rect(50, y, pageW - 20, 170).lineWidth(0.5).stroke(BORDER);
+  doc.rect(50, y, pageW - 20, 170).fill(LIGHT_BG);
+
+  y += 15;
+  doc.fillColor("#0f172a").fontSize(11).font("Helvetica-Bold");
+  doc.text("BÉNÉFICIAIRE", 70, y);
+
+  y += 25;
+  doc.fontSize(10);
+  const regimeLabel = entreprise.regimeSocial === SocialRegime.CNRPS ? "CNRPS" : "CNSS";
+  const fields = [
+    ["Référence :", ref],
+    ["Nom et Prénom :", `${employe.nom.toUpperCase()} ${employe.prenom}`],
+    ["CIN :", employe.cin],
+    [`Matricule ${regimeLabel} :`, employe.matriculeCnss || "N/A"],
+    ["RIB :", employe.iban.replace(/\s/g, "")],
+    ["Banque :", employe.banque || "—"],
+  ];
+
+  for (const [label, value] of fields) {
+    doc.font("Helvetica-Bold").fillColor("#334155").text(label, 70, y, { continued: true, width: 160 });
+    doc.font("Helvetica").fillColor("#0f172a").text(` ${value}`, { width: 320 });
+    y += 18;
+  }
+
+  // Amount box
+  y += 25;
+  doc.rect(50, y, pageW - 20, 60).lineWidth(1).stroke(PRIMARY);
+  doc.rect(50, y, pageW - 20, 60).fillOpacity(0.05).fill(PRIMARY);
+  doc.fillOpacity(1);
+
+  y += 12;
+  doc.fontSize(10).font("Helvetica-Bold").fillColor("#334155")
+    .text("MONTANT À VIRER", 70, y);
+  y += 20;
+  doc.fontSize(18).font("Helvetica-Bold").fillColor(PRIMARY)
+    .text(`${fmt(montant)} TND`, 70, y, { width: pageW - 60, align: "center" });
+  y += 22;
+  doc.fontSize(9).font("Helvetica").fillColor("#64748b")
+    .text(`(${numberToWords(Math.floor(montant))} dinars et ${Math.round((montant % 1) * 1000)} millimes)`, 70, y, { width: pageW - 60, align: "center" });
+
+  // Payment info
+  y += 35;
+  doc.fillColor("#334155").fontSize(9).font("Helvetica");
+  doc.text(`Mode de paiement : Virement bancaire`, 60, y);
+  y += 14;
+  doc.text(`Motif : Salaire ${MOIS_NOMS[mois - 1]} ${annee}`, 60, y);
+  y += 14;
+  doc.text(`Entreprise donneur d'ordre : ${entreprise.nom}`, 60, y);
+  y += 14;
+  doc.text(`Matricule Fiscal : ${entreprise.matriculeFiscal}`, 60, y);
+
+  // Signature blocks
+  y += 40;
+  doc.fontSize(9).font("Helvetica-Bold").fillColor("#334155");
+  doc.text("Établi par", 60, y, { width: 160, align: "center" });
+  doc.text("Signature autorisée", 320, y, { width: 200, align: "center" });
+  y += 30;
+  doc.rect(80, y, 120, 0.5).fill(BORDER);
+  doc.rect(340, y, 160, 0.5).fill(BORDER);
+  y += 5;
+  doc.fontSize(8).font("Helvetica").fillColor("#64748b");
+  doc.text("(Responsable Paie)", 60, y, { width: 160, align: "center" });
+  doc.text("(Direction Générale)", 320, y, { width: 200, align: "center" });
+
+  drawFooter(doc, entreprise, pageW);
+  doc.end();
+  return doc;
+}
+
+// ============================================================================
 // Dispatcher
 // ============================================================================
 export function generateDocument(
   type: DocumentType,
   employe: Employe,
   entreprise: Entreprise,
-  options?: { annee?: number; bulletins?: { mois: number; brut: number; cnss: number; irpp: number; net: number }[] },
+  options?: { annee?: number; mois?: number; montant?: number; bulletins?: { mois: number; brut: number; cnss: number; irpp: number; net: number }[] },
 ): InstanceType<typeof PDFDocument> {
   switch (type) {
     case DocumentType.ATTESTATION_TRAVAIL:
@@ -659,6 +763,14 @@ export function generateDocument(
         entreprise,
         options?.annee || new Date().getFullYear(),
         options?.bulletins || [],
+      );
+    case DocumentType.ORDRE_DE_VIREMENT:
+      return generateOrdreDeVirement(
+        employe,
+        entreprise,
+        options?.montant || employe.salaireBase,
+        options?.mois || new Date().getMonth() + 1,
+        options?.annee || new Date().getFullYear(),
       );
     default:
       throw new Error(`Type de document non supporté: ${type}`);

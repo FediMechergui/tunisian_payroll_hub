@@ -317,6 +317,7 @@ export const documentsApi = {
     employeId: string;
     typeDocument: string;
     annee?: number;
+    mois?: number;
   }) => api.post("/documents/generate", data, { responseType: "blob" }),
 
   download: (id: string) =>

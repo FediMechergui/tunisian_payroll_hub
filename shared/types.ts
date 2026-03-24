@@ -126,6 +126,7 @@ export enum DocumentType {
   ATTESTATION_CNSS = "attestation_cnss",
   FICHE_PAIE_ANNUELLE = "fiche_paie_annuelle",
   CERTIFICAT_TRAVAIL = "certificat_travail",
+  ORDRE_DE_VIREMENT = "ordre_de_virement",
 }
 
 export enum DeclarationType {
