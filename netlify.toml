@@ -4,6 +4,10 @@
   command = "pnpm exec vite build"
   publish = "dist/public"
 
+[build.environment]
+  # Flat node_modules so the function bundler can copy external modules
+  NPM_CONFIG_NODE_LINKER = "hoisted"
+
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["mongoose", "pdfkit"]
